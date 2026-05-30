@@ -9,5 +9,5 @@
     "files.defaultLanguage": "powershell",
     "editor.bracketPairColorization.enabled": true,
     "editor.guides.bracketPairs": true,
-    "workbench.colorTheme": "Default Dark Modern"
+    "workbench.colorTheme": "Dark Modern"
 }
