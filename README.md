@@ -162,7 +162,7 @@ All APIs are completely FREE and require NO API keys!
 Step 1 - Open PowerShell
 Step 2 - Run these commands:
 
-git clone https://github.com/YOURUSERNAME/OSINT-Tool.git
+https://github.com/vorlon-dev/OSINT-Tool.git
 cd OSINT-Tool
 Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 .\osint.ps1
