@@ -1,46 +1,30 @@
-@'
-#!/usr/bin/env python3
-# ================================================================
-#    ___  ____ ___ _   _ _____   _____ ___   ___  _
-#   / _ \/ ___|_ _| \ | |_   _| |_   _/ _ \ / _ \| |
-#  | | | \___ \| ||  \| | | |     | || | | | | | | |
-#  | |_| |___) | || |\  | | |     | || |_| | |_| | |___
-#   \___/|____/___|_| \_| |_|     |_| \___/ \___/|_____|
-#
-#  OSINT Framework v5.0 PRO - Python Edition
-#  Made by PRATAM
-#  Works on Windows, Linux, Mac, Termux Android
-#  Educational and Legal Use Only
-# ================================================================
-
+cat > osint.py << 'ENDOFFILE'
 import os
 import sys
-import json
 import socket
 import requests
 import datetime
 import platform
-import subprocess
-from colorama import Fore, Back, Style, init
 
-init(autoreset=True)
+try:
+    from colorama import Fore, Back, Style, init
+    init(autoreset=True)
+except:
+    os.system("pip install colorama -q")
+    from colorama import Fore, Back, Style, init
+    init(autoreset=True)
 
-# ================================================================
-# GLOBAL CONFIG
-# ================================================================
-
-VERSION    = "5.0 PRO PYTHON"
-AUTHOR     = "PRATAM"
+VERSION = "5.0 PRO"
+AUTHOR = "PRATAM"
 START_TIME = datetime.datetime.now()
 
 STATS = {
     "total_scans": 0,
-    "usernames_found": 0,
+    "profiles_found": 0,
+    "ips_scanned": 0,
     "emails_analyzed": 0,
     "phones_analyzed": 0,
-    "ips_scanned": 0,
     "domains_scanned": 0,
-    "profiles_found": 0,
     "open_ports": 0,
     "api_calls": 0,
     "reports_saved": 0
@@ -48,407 +32,377 @@ STATS = {
 
 SCAN_HISTORY = []
 
-# Create folders
 for folder in ["results", "reports", "cache"]:
     os.makedirs(folder, exist_ok=True)
 
-# Log file
 LOG_FILE = os.path.join("results", "osint.log")
-
-# ================================================================
-# FREE OPEN SOURCE APIS
-# ================================================================
-
-APIS = {
-    "ip_api_com"     : "http://ip-api.com/json",
-    "ipinfo_io"      : "https://ipinfo.io",
-    "ipapi_co"       : "https://ipapi.co",
-    "hackertarget"   : "https://api.hackertarget.com",
-    "emailrep"       : "https://emailrep.io",
-    "disify"         : "https://www.disify.com/api/email",
-    "github_api"     : "https://api.github.com",
-    "reddit_api"     : "https://www.reddit.com",
-    "hn_api"         : "https://hn.algolia.com/api/v1",
-    "alienvault"     : "https://otx.alienvault.com/api/v1",
-    "threatfox"      : "https://threatfox-api.abuse.ch/api/v1",
-    "nvd_api"        : "https://services.nvd.nist.gov/rest/json/cves/2.0",
-    "crt_sh"         : "https://crt.sh",
-    "rdap"           : "https://rdap.org"
-}
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 }
 
-# ================================================================
-# UI FUNCTIONS
-# ================================================================
+APIS = {
+    "ip_api"      : "http://ip-api.com/json",
+    "ipinfo"      : "https://ipinfo.io",
+    "ipapi"       : "https://ipapi.co",
+    "hackertarget": "https://api.hackertarget.com",
+    "emailrep"    : "https://emailrep.io",
+    "disify"      : "https://www.disify.com/api/email",
+    "github"      : "https://api.github.com",
+    "reddit"      : "https://www.reddit.com",
+    "hn"          : "https://hn.algolia.com/api/v1",
+    "alienvault"  : "https://otx.alienvault.com/api/v1",
+    "threatfox"   : "https://threatfox-api.abuse.ch/api/v1",
+    "nvd"         : "https://services.nvd.nist.gov/rest/json/cves/2.0",
+    "crtsh"       : "https://crt.sh",
+}
 
-def clear():
+def clear_screen():
     os.system("cls" if os.name == "nt" else "clear")
 
-def banner():
-    clear()
+def show_banner():
+    clear_screen()
     print(Fore.CYAN + """
   ================================================================
-     ___  ____ ___ _   _ _____   _____ ___   ___  _     
-    / _ \/ ___|_ _| \ | |_   _| |_   _/ _ \ / _ \| |    
-   | | | \___ \| ||  \| | | |     | || | | | | | | |    
-   | |_| |___) | || |\  | | |     | || |_| | |_| | |___ 
-    \___/|____/___|_| \_| |_|     |_| \___/ \___/|_____| 
-  """)
-    print(Fore.YELLOW + f"       PROFESSIONAL INTELLIGENCE FRAMEWORK v{VERSION}")
-    print(Fore.GREEN  + f"                    Made by {AUTHOR}")
-    print(Fore.CYAN   + "         Works on Windows, Linux, Mac, Termux")
+     ___  ____ ___ _   _ _____   _____ ___   ___  _
+    / _ \/ ___|_ _| \ | |_   _| |_   _/ _ \ / _ \| |
+   | | | \___ \| ||  \| | | |     | || | | | | | | |
+   | |_| |___) | || |\  | | |     | || |_| | |_| | |___
+    \___/|____/___|_| \_| |_|     |_| \___/ \___/|_____|
+  ================================================================""")
+    print(Fore.YELLOW + "       PROFESSIONAL INTELLIGENCE FRAMEWORK v" + VERSION)
+    print(Fore.GREEN  + "                    Made by " + AUTHOR)
+    print(Fore.CYAN   + "         Windows | Linux | Mac | Termux Android")
     print(Fore.RED    + "             Educational and Legal Use Only")
-    print(Fore.CYAN   + "  ================================================================\n")
+    print(Fore.CYAN   + "  ================================================================")
+    print()
 
-def section(title):
-    print(Fore.DarkCyan if hasattr(Fore, 'DarkCyan') else Fore.CYAN)
+def show_section(title):
     print(Fore.CYAN   + "\n  ================================================================")
-    print(Fore.YELLOW + f"   >> {title}")
+    print(Fore.YELLOW + "   >> " + title)
     print(Fore.CYAN   + "  ================================================================\n")
 
-def subsection(title):
-    print(Fore.CYAN + f"\n  ~~~ {title} ~~~\n")
+def show_subsection(title):
+    print(Fore.CYAN + "\n  ~~~ " + title + " ~~~\n")
 
-def info(key, value, color=Fore.YELLOW):
-    pad = " " * (25 - len(key))
-    print(Fore.CYAN + f"  {key}{pad} : " + color + str(value))
+def show_info(key, value, color=Fore.YELLOW):
+    pad = " " * (25 - len(str(key)))
+    print(Fore.CYAN + "  " + str(key) + pad + " : " + color + str(value))
 
-def log(message, log_type="INFO"):
+def show_log(message, log_type="INFO"):
     time_str = datetime.datetime.now().strftime("%H:%M:%S")
     colors = {
-        "SUCCESS" : Fore.GREEN,
-        "ERROR"   : Fore.RED,
-        "WARN"    : Fore.YELLOW,
-        "SCAN"    : Fore.CYAN,
-        "FOUND"   : Fore.GREEN,
-        "API"     : Fore.MAGENTA,
-        "INFO"    : Fore.WHITE
+        "SUCCESS": Fore.GREEN,
+        "ERROR"  : Fore.RED,
+        "WARN"   : Fore.YELLOW,
+        "SCAN"   : Fore.CYAN,
+        "FOUND"  : Fore.GREEN,
+        "API"    : Fore.MAGENTA,
+        "INFO"   : Fore.WHITE
     }
     color = colors.get(log_type, Fore.WHITE)
-    print(color + f"  [{time_str}][{log_type}] {message}")
+    print(color + "  [" + time_str + "][" + log_type + "] " + message)
     try:
-        with open(LOG_FILE, "a") as f:
-            f.write(f"[{time_str}][{log_type}] {message}\n")
+        with open(LOG_FILE, "a", encoding="utf-8") as f:
+            f.write("[" + time_str + "][" + log_type + "] " + message + "\n")
     except:
         pass
 
-def found(platform_name, url):
+def show_found(platform_name, url):
     print(Back.GREEN + Fore.WHITE + "  [FOUND] " + Style.RESET_ALL +
-          Fore.GREEN + f" {platform_name}")
-    print(Fore.CYAN  + f"          -> {url}")
+          Fore.GREEN + " " + platform_name)
+    print(Fore.CYAN + "          -> " + url)
 
-def api_result(api_name, result, color=Fore.GREEN):
-    print(Back.BLUE + Fore.WHITE + "  [API] " + Style.RESET_ALL +
-          Fore.CYAN + f" {api_name}" + color + f" : {result}")
-
-def progress_bar(current, total, status=""):
+def show_progress(current, total, status=""):
+    if total == 0:
+        return
     percent = round((current / total) * 100)
-    filled  = round(percent / 2.5)
-    empty   = 40 - filled
-    bar     = "=" * filled + "-" * empty
-    print(f"\r  [{bar}] {percent}% | {status}                    ", end="", flush=True)
+    filled = round(percent / 2.5)
+    if filled > 40:
+        filled = 40
+    empty = 40 - filled
+    bar = "=" * filled + "-" * empty
+    print("\r  [" + bar + "] " + str(percent) + "% | " + status + "                    ", end="", flush=True)
 
-def api_request(url, api_name="API", headers=None, method="GET", data=None):
+def call_api(url, api_name="API", method="GET", data=None):
     STATS["api_calls"] += 1
-    h = HEADERS.copy()
-    if headers:
-        h.update(headers)
     try:
         if method == "POST":
-            response = requests.post(url, headers=h, json=data, timeout=15)
+            r = requests.post(url, headers=HEADERS, json=data, timeout=15)
         else:
-            response = requests.get(url, headers=h, timeout=15)
-        log(f"API success: {api_name}", "API")
-        return response.json() if response.headers.get("content-type", "").startswith("application/json") else response.text
+            r = requests.get(url, headers=HEADERS, timeout=15)
+        show_log("API success: " + api_name, "API")
+        ct = r.headers.get("content-type", "")
+        if "json" in ct:
+            return r.json()
+        return r.text
     except Exception as e:
-        log(f"API failed: {api_name} - {str(e)}", "WARN")
+        show_log("API failed: " + api_name, "WARN")
         return None
 
 def save_report(content, target, report_type):
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    safe      = "".join(c if c.isalnum() else "_" for c in target)
-    filename  = f"OSINT_{report_type}_{safe}_{timestamp}.txt"
-    filepath  = os.path.join("reports", filename)
-    header = f"""================================================================
-         OSINT FRAMEWORK v{VERSION}
-              INVESTIGATION REPORT
-              MADE BY PRATAM
-================================================================
-Report Type    : {report_type}
-Target         : {target}
-Generated      : {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-Investigator   : {os.environ.get('USER', os.environ.get('USERNAME', 'Unknown'))}
-Computer       : {socket.gethostname()}
-API Calls Made : {STATS['api_calls']}
-================================================================
-
-{content}
-
-================================================================
-MADE BY PRATAM
-Educational and Legal Use Only
-================================================================
-"""
+    safe = ""
+    for c in target:
+        if c.isalnum():
+            safe += c
+        else:
+            safe += "_"
+    filename = "OSINT_" + report_type + "_" + safe + "_" + timestamp + ".txt"
+    filepath = os.path.join("reports", filename)
+    username = os.environ.get("USER", os.environ.get("USERNAME", "Unknown"))
+    header = (
+        "================================================================\n"
+        "         OSINT FRAMEWORK v" + VERSION + "\n"
+        "              MADE BY PRATAM\n"
+        "================================================================\n"
+        "Report Type : " + report_type + "\n"
+        "Target      : " + target + "\n"
+        "Generated   : " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "\n"
+        "User        : " + username + "\n"
+        "================================================================\n\n"
+        + content +
+        "\n================================================================\n"
+        "MADE BY PRATAM | Educational Use Only\n"
+        "================================================================\n"
+    )
     with open(filepath, "w", encoding="utf-8") as f:
         f.write(header)
     STATS["reports_saved"] += 1
-    log(f"Report saved: {filepath}", "SUCCESS")
+    show_log("Report saved: " + filepath, "SUCCESS")
     return filepath
 
-def save_prompt(content, target, report_type):
+def ask_save(content, target, report_type):
     print()
     save = input(Fore.YELLOW + "  Save report? [Y/N]: " + Fore.WHITE).strip().upper()
     if save == "Y":
         path = save_report(content, target, report_type)
-        print(Fore.GREEN + f"  [+] Saved: {path}")
-        open_f = input(Fore.YELLOW + "  Open reports folder? [Y/N]: " + Fore.WHITE).strip().upper()
-        if open_f == "Y":
-            if os.name == "nt":
-                os.startfile(os.path.abspath("reports"))
-            else:
-                subprocess.Popen(["xdg-open", os.path.abspath("reports")])
+        print(Fore.GREEN + "  [+] Saved: " + path)
 
 def add_history(module, target, result):
     SCAN_HISTORY.append({
-        "time"   : datetime.datetime.now().strftime("%H:%M:%S"),
-        "module" : module,
-        "target" : target,
-        "result" : result
+        "time"  : datetime.datetime.now().strftime("%H:%M:%S"),
+        "module": module,
+        "target": target,
+        "result": result
     })
 
-# ================================================================
-# MODULE 1: USERNAME SEARCH (150+ PLATFORMS)
-# ================================================================
-
 def search_username(username):
-    section(f"USERNAME ENUMERATION: {username}")
-    log(f"Scanning platforms for: {username}", "SCAN")
+    show_section("USERNAME SEARCH: " + username)
+    show_log("Scanning 100+ platforms...", "SCAN")
 
     platforms = {
-        # Social Media
-        "GitHub"        : f"https://github.com/{username}",
-        "Twitter"       : f"https://twitter.com/{username}",
-        "Instagram"     : f"https://instagram.com/{username}",
-        "TikTok"        : f"https://tiktok.com/@{username}",
-        "Reddit"        : f"https://reddit.com/user/{username}",
-        "YouTube"       : f"https://youtube.com/@{username}",
-        "LinkedIn"      : f"https://linkedin.com/in/{username}",
-        "Facebook"      : f"https://facebook.com/{username}",
-        "Snapchat"      : f"https://snapchat.com/add/{username}",
-        "Pinterest"     : f"https://pinterest.com/{username}",
-        "Tumblr"        : f"https://{username}.tumblr.com",
-        "Flickr"        : f"https://flickr.com/people/{username}",
-        "VK"            : f"https://vk.com/{username}",
-        "Telegram"      : f"https://t.me/{username}",
-        "Discord"       : f"https://discord.com/users/{username}",
-        "Quora"         : f"https://quora.com/profile/{username}",
-        "Wattpad"       : f"https://wattpad.com/user/{username}",
-        "9GAG"          : f"https://9gag.com/u/{username}",
-        "Imgur"         : f"https://imgur.com/user/{username}",
-        "Gravatar"      : f"https://gravatar.com/{username}",
-        # Developer
-        "GitLab"        : f"https://gitlab.com/{username}",
-        "Bitbucket"     : f"https://bitbucket.org/{username}",
-        "CodePen"       : f"https://codepen.io/{username}",
-        "Replit"        : f"https://replit.com/@{username}",
-        "StackOverflow" : f"https://stackoverflow.com/users/{username}",
-        "HackerRank"    : f"https://hackerrank.com/{username}",
-        "LeetCode"      : f"https://leetcode.com/{username}",
-        "HackerNews"    : f"https://news.ycombinator.com/user?id={username}",
-        "Dev.to"        : f"https://dev.to/{username}",
-        "Medium"        : f"https://medium.com/@{username}",
-        "Hashnode"      : f"https://hashnode.com/@{username}",
-        "NPM"           : f"https://npmjs.com/~{username}",
-        "PyPI"          : f"https://pypi.org/user/{username}",
-        "DockerHub"     : f"https://hub.docker.com/u/{username}",
-        # Gaming
-        "Twitch"        : f"https://twitch.tv/{username}",
-        "Steam"         : f"https://steamcommunity.com/id/{username}",
-        "PSN"           : f"https://psnprofiles.com/{username}",
-        "Roblox"        : f"https://roblox.com/user.aspx?username={username}",
-        "Minecraft"     : f"https://namemc.com/profile/{username}",
-        "ChessCom"      : f"https://chess.com/member/{username}",
-        "Lichess"       : f"https://lichess.org/@/{username}",
-        "Faceit"        : f"https://faceit.com/en/players/{username}",
-        # Creative
-        "DeviantArt"    : f"https://deviantart.com/{username}",
-        "ArtStation"    : f"https://artstation.com/{username}",
-        "Behance"       : f"https://behance.net/{username}",
-        "Dribbble"      : f"https://dribbble.com/{username}",
-        "SoundCloud"    : f"https://soundcloud.com/{username}",
-        "Spotify"       : f"https://open.spotify.com/user/{username}",
-        "Bandcamp"      : f"https://{username}.bandcamp.com",
-        "Vimeo"         : f"https://vimeo.com/{username}",
-        "500px"         : f"https://500px.com/p/{username}",
-        "Unsplash"      : f"https://unsplash.com/@{username}",
-        # Professional
-        "AngelList"     : f"https://angel.co/{username}",
-        "ProductHunt"   : f"https://producthunt.com/@{username}",
-        "Fiverr"        : f"https://fiverr.com/{username}",
-        "Freelancer"    : f"https://freelancer.com/u/{username}",
-        "Upwork"        : f"https://upwork.com/freelancers/~{username}",
-        # Security
-        "TryHackMe"     : f"https://tryhackme.com/p/{username}",
-        "HackTheBox"    : f"https://app.hackthebox.com/profile/{username}",
-        "Bugcrowd"      : f"https://bugcrowd.com/{username}",
-        "HackerOne"     : f"https://hackerone.com/{username}",
-        # Other
-        "Pastebin"      : f"https://pastebin.com/u/{username}",
-        "Keybase"       : f"https://keybase.io/{username}",
-        "AboutMe"       : f"https://about.me/{username}",
-        "Linktree"      : f"https://linktr.ee/{username}",
-        "Goodreads"     : f"https://goodreads.com/{username}",
-        "LastFM"        : f"https://last.fm/user/{username}",
-        "MyAnimeList"   : f"https://myanimelist.net/profile/{username}",
-        "Letterboxd"    : f"https://letterboxd.com/{username}",
-        "Strava"        : f"https://strava.com/athletes/{username}",
-        "Duolingo"      : f"https://duolingo.com/profile/{username}",
+        "GitHub"       : "https://github.com/" + username,
+        "Twitter"      : "https://twitter.com/" + username,
+        "Instagram"    : "https://instagram.com/" + username,
+        "TikTok"       : "https://tiktok.com/@" + username,
+        "Reddit"       : "https://reddit.com/user/" + username,
+        "YouTube"      : "https://youtube.com/@" + username,
+        "LinkedIn"     : "https://linkedin.com/in/" + username,
+        "Facebook"     : "https://facebook.com/" + username,
+        "Snapchat"     : "https://snapchat.com/add/" + username,
+        "Pinterest"    : "https://pinterest.com/" + username,
+        "Tumblr"       : "https://" + username + ".tumblr.com",
+        "Flickr"       : "https://flickr.com/people/" + username,
+        "VK"           : "https://vk.com/" + username,
+        "Telegram"     : "https://t.me/" + username,
+        "Quora"        : "https://quora.com/profile/" + username,
+        "Wattpad"      : "https://wattpad.com/user/" + username,
+        "9GAG"         : "https://9gag.com/u/" + username,
+        "Imgur"        : "https://imgur.com/user/" + username,
+        "Gravatar"     : "https://gravatar.com/" + username,
+        "GitLab"       : "https://gitlab.com/" + username,
+        "Bitbucket"    : "https://bitbucket.org/" + username,
+        "CodePen"      : "https://codepen.io/" + username,
+        "Replit"       : "https://replit.com/@" + username,
+        "StackOverflow": "https://stackoverflow.com/users/" + username,
+        "HackerRank"   : "https://hackerrank.com/" + username,
+        "LeetCode"     : "https://leetcode.com/" + username,
+        "HackerNews"   : "https://news.ycombinator.com/user?id=" + username,
+        "Dev.to"       : "https://dev.to/" + username,
+        "Medium"       : "https://medium.com/@" + username,
+        "Hashnode"     : "https://hashnode.com/@" + username,
+        "NPM"          : "https://npmjs.com/~" + username,
+        "PyPI"         : "https://pypi.org/user/" + username,
+        "DockerHub"    : "https://hub.docker.com/u/" + username,
+        "Twitch"       : "https://twitch.tv/" + username,
+        "Steam"        : "https://steamcommunity.com/id/" + username,
+        "PSN"          : "https://psnprofiles.com/" + username,
+        "Roblox"       : "https://roblox.com/user.aspx?username=" + username,
+        "Minecraft"    : "https://namemc.com/profile/" + username,
+        "ChessCom"     : "https://chess.com/member/" + username,
+        "Lichess"      : "https://lichess.org/@/" + username,
+        "Faceit"       : "https://faceit.com/en/players/" + username,
+        "DeviantArt"   : "https://deviantart.com/" + username,
+        "ArtStation"   : "https://artstation.com/" + username,
+        "Behance"      : "https://behance.net/" + username,
+        "Dribbble"     : "https://dribbble.com/" + username,
+        "SoundCloud"   : "https://soundcloud.com/" + username,
+        "Spotify"      : "https://open.spotify.com/user/" + username,
+        "Bandcamp"     : "https://" + username + ".bandcamp.com",
+        "Vimeo"        : "https://vimeo.com/" + username,
+        "500px"        : "https://500px.com/p/" + username,
+        "Unsplash"     : "https://unsplash.com/@" + username,
+        "AngelList"    : "https://angel.co/" + username,
+        "ProductHunt"  : "https://producthunt.com/@" + username,
+        "Fiverr"       : "https://fiverr.com/" + username,
+        "Freelancer"   : "https://freelancer.com/u/" + username,
+        "Upwork"       : "https://upwork.com/freelancers/~" + username,
+        "TryHackMe"    : "https://tryhackme.com/p/" + username,
+        "HackTheBox"   : "https://app.hackthebox.com/profile/" + username,
+        "Bugcrowd"     : "https://bugcrowd.com/" + username,
+        "HackerOne"    : "https://hackerone.com/" + username,
+        "Pastebin"     : "https://pastebin.com/u/" + username,
+        "Keybase"      : "https://keybase.io/" + username,
+        "AboutMe"      : "https://about.me/" + username,
+        "Linktree"     : "https://linktr.ee/" + username,
+        "Goodreads"    : "https://goodreads.com/" + username,
+        "LastFM"       : "https://last.fm/user/" + username,
+        "MyAnimeList"  : "https://myanimelist.net/profile/" + username,
+        "Letterboxd"   : "https://letterboxd.com/" + username,
+        "Strava"       : "https://strava.com/athletes/" + username,
+        "Duolingo"     : "https://duolingo.com/profile/" + username,
+        "Substack"     : "https://" + username + ".substack.com",
+        "Codeforces"   : "https://codeforces.com/profile/" + username,
+        "Ko-fi"        : "https://ko-fi.com/" + username,
+        "Patreon"      : "https://patreon.com/" + username,
+        "Codecademy"   : "https://codecademy.com/profiles/" + username,
+        "Scribd"       : "https://scribd.com/" + username,
+        "Etsy"         : "https://etsy.com/people/" + username,
+        "Poshmark"     : "https://poshmark.com/closet/" + username,
+        "ResearchGate" : "https://researchgate.net/profile/" + username,
+        "Academia"     : "https://independent.academia.edu/" + username,
     }
 
     print()
-    info("Target Username", username, Fore.WHITE)
-    info("Total Platforms", str(len(platforms)), Fore.YELLOW)
+    show_info("Target", username, Fore.WHITE)
+    show_info("Platforms", str(len(platforms)), Fore.YELLOW)
     print()
 
-    found_count  = 0
-    total        = len(platforms)
-    current      = 0
-    output       = ""
-    found_list   = []
+    found_count = 0
+    total = len(platforms)
+    current = 0
+    output = ""
+    found_list = []
 
-    for platform_name, url in sorted(platforms.items()):
+    for name, url in sorted(platforms.items()):
         current += 1
-        progress_bar(current, total, platform_name)
+        show_progress(current, total, name)
         try:
             r = requests.head(url, headers=HEADERS, timeout=8, allow_redirects=True)
             if r.status_code == 200:
                 print()
-                found(platform_name, url)
+                show_found(name, url)
                 found_count += 1
-                found_list.append(platform_name)
-                output += f"[FOUND] {platform_name}\n  URL: {url}\n\n"
+                found_list.append(name)
+                output += "[FOUND] " + name + "\n  URL: " + url + "\n\n"
                 STATS["profiles_found"] += 1
         except:
             pass
 
     print("\n")
 
-    # GitHub API
-    subsection("GITHUB API DEEP SCAN")
-    gh = api_request(f"{APIS['github_api']}/users/{username}", "GitHub API")
+    show_subsection("GITHUB API SCAN")
+    gh = call_api(APIS["github"] + "/users/" + username, "GitHub API")
     if gh and isinstance(gh, dict) and "login" in gh:
-        api_result("GitHub API", "User found!", Fore.GREEN)
-        info("Name",      str(gh.get("name", "N/A")), Fore.WHITE)
-        info("Bio",       str(gh.get("bio", "N/A")), Fore.GRAY if hasattr(Fore, 'GRAY') else Fore.WHITE)
-        info("Company",   str(gh.get("company", "N/A")), Fore.YELLOW)
-        info("Location",  str(gh.get("location", "N/A")), Fore.YELLOW)
-        info("Email",     str(gh.get("email", "N/A")), Fore.CYAN)
-        info("Blog",      str(gh.get("blog", "N/A")), Fore.CYAN)
-        info("Twitter",   str(gh.get("twitter_username", "N/A")), Fore.CYAN)
-        info("Followers", str(gh.get("followers", 0)), Fore.GREEN)
-        info("Repos",     str(gh.get("public_repos", 0)), Fore.GREEN)
-        info("Created",   str(gh.get("created_at", "N/A")), Fore.WHITE)
-        output += f"=== GITHUB ===\nName: {gh.get('name')}\nLocation: {gh.get('location')}\nEmail: {gh.get('email')}\n\n"
+        print(Fore.GREEN + "  [+] GitHub user found!")
+        show_info("Name",      str(gh.get("name", "N/A")),     Fore.WHITE)
+        show_info("Bio",       str(gh.get("bio", "N/A")),      Fore.WHITE)
+        show_info("Location",  str(gh.get("location", "N/A")), Fore.YELLOW)
+        show_info("Email",     str(gh.get("email", "N/A")),    Fore.CYAN)
+        show_info("Company",   str(gh.get("company", "N/A")),  Fore.YELLOW)
+        show_info("Blog",      str(gh.get("blog", "N/A")),     Fore.CYAN)
+        show_info("Twitter",   str(gh.get("twitter_username", "N/A")), Fore.CYAN)
+        show_info("Followers", str(gh.get("followers", 0)),    Fore.GREEN)
+        show_info("Repos",     str(gh.get("public_repos", 0)), Fore.GREEN)
+        show_info("Created",   str(gh.get("created_at", "N/A")), Fore.WHITE)
+        output += "=== GITHUB ===\n"
+        output += "Name: " + str(gh.get("name")) + "\n"
+        output += "Location: " + str(gh.get("location")) + "\n"
+        output += "Email: " + str(gh.get("email")) + "\n\n"
 
-    # Reddit API
-    subsection("REDDIT API DEEP SCAN")
-    rd = api_request(f"{APIS['reddit_api']}/user/{username}/about.json", "Reddit API")
+    show_subsection("REDDIT API SCAN")
+    rd = call_api(APIS["reddit"] + "/user/" + username + "/about.json", "Reddit API")
     if rd and isinstance(rd, dict) and "data" in rd:
         data = rd["data"]
-        api_result("Reddit API", "User found!", Fore.GREEN)
-        info("Name",    str(data.get("name", "N/A")), Fore.WHITE)
-        info("Karma",   str(data.get("total_karma", 0)), Fore.YELLOW)
-        info("Premium", str(data.get("is_gold", False)), Fore.YELLOW)
-        output += f"=== REDDIT ===\nName: {data.get('name')}\nKarma: {data.get('total_karma')}\n\n"
+        print(Fore.GREEN + "  [+] Reddit user found!")
+        show_info("Name",  str(data.get("name", "N/A")),    Fore.WHITE)
+        show_info("Karma", str(data.get("total_karma", 0)), Fore.YELLOW)
+        output += "=== REDDIT ===\nName: " + str(data.get("name")) + "\nKarma: " + str(data.get("total_karma")) + "\n\n"
 
-    # HackerNews API
-    subsection("HACKERNEWS API SCAN")
-    hn = api_request(f"{APIS['hn_api']}/users/{username}", "HackerNews API")
+    show_subsection("HACKERNEWS API SCAN")
+    hn = call_api(APIS["hn"] + "/users/" + username, "HackerNews API")
     if hn and isinstance(hn, dict) and "username" in hn:
-        api_result("HackerNews", "User found!", Fore.GREEN)
-        info("Username", str(hn.get("username", "N/A")), Fore.WHITE)
-        info("Karma",    str(hn.get("karma", 0)), Fore.YELLOW)
-        output += f"=== HACKERNEWS ===\nUsername: {hn.get('username')}\nKarma: {hn.get('karma')}\n\n"
+        print(Fore.GREEN + "  [+] HackerNews user found!")
+        show_info("Username", str(hn.get("username", "N/A")), Fore.WHITE)
+        show_info("Karma",    str(hn.get("karma", 0)),        Fore.YELLOW)
 
-    subsection("SCAN SUMMARY")
-    info("Username",          username,              Fore.WHITE)
-    info("Platforms Scanned", str(total),            Fore.CYAN)
-    info("Profiles Found",    str(found_count),      Fore.GREEN)
-    info("Not Found",         str(total-found_count),Fore.RED)
-    info("API Calls",         str(STATS["api_calls"]),Fore.MAGENTA)
+    show_subsection("SUMMARY")
+    show_info("Platforms Scanned", str(total),               Fore.CYAN)
+    show_info("Profiles Found",    str(found_count),         Fore.GREEN)
+    show_info("Not Found",         str(total - found_count), Fore.RED)
+    show_info("API Calls",         str(STATS["api_calls"]),  Fore.MAGENTA)
 
     if found_list:
         print(Fore.GREEN + "\n  Found on:")
         for p in found_list:
-            print(Fore.GREEN + f"    -> {p}")
+            print(Fore.GREEN + "    -> " + p)
 
-    subsection("GOOGLE DORKS")
-    dorks = [
-        f'https://google.com/search?q="{username}"',
-        f'https://google.com/search?q="{username}"+site:pastebin.com',
-        f'https://google.com/search?q="{username}"+site:github.com',
-        f'https://google.com/search?q="{username}"+email',
-    ]
-    for d in dorks:
-        print(Fore.CYAN + f"  -> {d}")
+    show_subsection("GOOGLE DORKS")
+    print(Fore.CYAN + "  -> https://google.com/search?q=%22" + username + "%22")
+    print(Fore.CYAN + "  -> https://google.com/search?q=%22" + username + "%22+site:pastebin.com")
+    print(Fore.CYAN + "  -> https://google.com/search?q=%22" + username + "%22+site:github.com")
+    print(Fore.CYAN + "  -> https://google.com/search?q=%22" + username + "%22+email")
+    print(Fore.CYAN + "  -> https://bing.com/search?q=%22" + username + "%22")
+    print(Fore.CYAN + "  -> https://duckduckgo.com/?q=%22" + username + "%22")
 
-    STATS["usernames_found"] += found_count
-    add_history("Username", username, f"{found_count} found")
-    log(f"Username scan complete: {found_count} found", "SUCCESS")
-    save_prompt(output, username, "Username")
+    add_history("Username", username, str(found_count) + " found")
+    show_log("Scan complete: " + str(found_count) + " profiles found", "SUCCESS")
+    ask_save(output, username, "Username")
 
-# ================================================================
-# MODULE 2: IP INTELLIGENCE
-# ================================================================
-
-def get_ip_intelligence(ip):
-    section(f"IP INTELLIGENCE: {ip}")
-    log(f"Querying IP APIs...", "SCAN")
-
+def get_ip_info(ip):
+    show_section("IP INTELLIGENCE: " + ip)
+    show_log("Querying IP APIs...", "SCAN")
     output = ""
 
-    subsection("API 1 - ip-api.com")
-    data1 = api_request(f"{APIS['ip_api_com']}/{ip}?fields=status,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,asname,reverse,mobile,proxy,hosting,query", "ip-api.com")
+    show_subsection("API 1 - ip-api.com")
+    data1 = call_api(APIS["ip_api"] + "/" + ip + "?fields=status,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,asname,reverse,mobile,proxy,hosting,query", "ip-api.com")
     if data1 and isinstance(data1, dict) and data1.get("status") == "success":
-        api_result("ip-api.com", "Data received", Fore.GREEN)
-        info("IP Address",   str(data1.get("query", "")),      Fore.WHITE)
-        info("Country",      f"{data1.get('country')} [{data1.get('countryCode')}]", Fore.YELLOW)
-        info("Region",       str(data1.get("regionName", "")), Fore.YELLOW)
-        info("City",         str(data1.get("city", "")),       Fore.YELLOW)
-        info("ZIP",          str(data1.get("zip", "")),        Fore.WHITE)
-        info("Coordinates",  f"{data1.get('lat')}, {data1.get('lon')}", Fore.CYAN)
-        info("Timezone",     str(data1.get("timezone", "")),   Fore.CYAN)
-        info("ISP",          str(data1.get("isp", "")),        Fore.GREEN)
-        info("Org",          str(data1.get("org", "")),        Fore.GREEN)
-        info("AS",           str(data1.get("as", "")),         Fore.WHITE)
-        info("Mobile",       str(data1.get("mobile", False)),  Fore.RED if data1.get("mobile") else Fore.GREEN)
-        info("Proxy/VPN",    str(data1.get("proxy", False)),   Fore.RED if data1.get("proxy") else Fore.GREEN)
-        info("Hosting",      str(data1.get("hosting", False)), Fore.YELLOW if data1.get("hosting") else Fore.GREEN)
-        output += f"=== ip-api.com ===\nIP: {data1.get('query')}\nCountry: {data1.get('country')}\nCity: {data1.get('city')}\nISP: {data1.get('isp')}\n\n"
+        print(Fore.GREEN + "  [+] Data received from ip-api.com")
+        show_info("IP Address",  str(data1.get("query", "")),      Fore.WHITE)
+        show_info("Country",     str(data1.get("country", "")) + " [" + str(data1.get("countryCode", "")) + "]", Fore.YELLOW)
+        show_info("Region",      str(data1.get("regionName", "")), Fore.YELLOW)
+        show_info("City",        str(data1.get("city", "")),       Fore.YELLOW)
+        show_info("ZIP",         str(data1.get("zip", "")),        Fore.WHITE)
+        show_info("Coordinates", str(data1.get("lat", "")) + ", " + str(data1.get("lon", "")), Fore.CYAN)
+        show_info("Timezone",    str(data1.get("timezone", "")),   Fore.CYAN)
+        show_info("ISP",         str(data1.get("isp", "")),        Fore.GREEN)
+        show_info("Org",         str(data1.get("org", "")),        Fore.GREEN)
+        show_info("AS",          str(data1.get("as", "")),         Fore.WHITE)
+        mobile_val = data1.get("mobile", False)
+        proxy_val  = data1.get("proxy", False)
+        show_info("Mobile",    str(mobile_val), Fore.RED   if mobile_val else Fore.GREEN)
+        show_info("Proxy/VPN", str(proxy_val),  Fore.RED   if proxy_val  else Fore.GREEN)
+        output += "IP: " + str(data1.get("query")) + "\nCountry: " + str(data1.get("country")) + "\nCity: " + str(data1.get("city")) + "\nISP: " + str(data1.get("isp")) + "\n\n"
 
-    subsection("API 2 - ipinfo.io")
-    data2 = api_request(f"{APIS['ipinfo_io']}/{ip}/json", "ipinfo.io")
+    show_subsection("API 2 - ipinfo.io")
+    data2 = call_api(APIS["ipinfo"] + "/" + ip + "/json", "ipinfo.io")
     if data2 and isinstance(data2, dict):
-        api_result("ipinfo.io", "Data received", Fore.GREEN)
-        info("Hostname", str(data2.get("hostname", "N/A")), Fore.WHITE)
-        info("Org",      str(data2.get("org", "N/A")),      Fore.GREEN)
-        info("Postal",   str(data2.get("postal", "N/A")),   Fore.WHITE)
+        print(Fore.GREEN + "  [+] Data received from ipinfo.io")
+        show_info("Hostname", str(data2.get("hostname", "N/A")), Fore.WHITE)
+        show_info("Org",      str(data2.get("org", "N/A")),      Fore.GREEN)
 
-    subsection("API 3 - AlienVault OTX")
-    av = api_request(f"{APIS['alienvault']}/indicators/IPv4/{ip}/general", "AlienVault OTX")
+    show_subsection("API 3 - AlienVault OTX")
+    av = call_api(APIS["alienvault"] + "/indicators/IPv4/" + ip + "/general", "AlienVault OTX")
     if av and isinstance(av, dict):
-        api_result("AlienVault OTX", "Threat data received", Fore.GREEN)
+        print(Fore.GREEN + "  [+] Threat data received")
         pulse_count = av.get("pulse_info", {}).get("count", 0)
-        info("Pulse Count", str(pulse_count), Fore.RED if pulse_count > 0 else Fore.GREEN)
-        info("Reputation",  str(av.get("reputation", "N/A")), Fore.YELLOW)
+        show_info("Pulse Count", str(pulse_count), Fore.RED if pulse_count > 0 else Fore.GREEN)
         if pulse_count > 0:
-            print(Fore.RED + f"  [!] This IP is flagged in {pulse_count} threat pulses!")
+            print(Fore.RED + "  [!] WARNING: This IP is flagged in " + str(pulse_count) + " threat pulses!")
 
-    subsection("PORT SCAN")
-    log("Scanning 20 common ports...", "SCAN")
+    show_subsection("PORT SCAN")
+    show_log("Scanning 20 common ports...", "SCAN")
 
     ports = {
         21: "FTP", 22: "SSH", 23: "Telnet", 25: "SMTP",
@@ -463,15 +417,15 @@ def get_ip_intelligence(ip):
 
     for port, service in sorted(ports.items()):
         port_num += 1
-        progress_bar(port_num, len(ports), f"Port {port} ({service})")
+        show_progress(port_num, len(ports), "Port " + str(port) + " " + service)
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(1)
             result = sock.connect_ex((ip, port))
             if result == 0:
                 print()
-                print(Fore.GREEN + f"  [OPEN] Port {port} - {service}")
-                open_ports.append(f"{port}/{service}")
+                print(Fore.GREEN + "  [OPEN] Port " + str(port) + " - " + service)
+                open_ports.append(str(port) + "/" + service)
                 STATS["open_ports"] += 1
             sock.close()
         except:
@@ -480,38 +434,29 @@ def get_ip_intelligence(ip):
     print()
 
     if open_ports:
-        info("Open Ports", str(len(open_ports)), Fore.RED)
-        output += f"=== OPEN PORTS ===\n{', '.join(open_ports)}\n\n"
+        show_info("Open Ports Found", str(len(open_ports)), Fore.RED)
+        output += "Open Ports: " + ", ".join(open_ports) + "\n\n"
     else:
         print(Fore.LIGHTBLACK_EX + "  No open ports detected")
 
-    subsection("THREAT INTELLIGENCE LINKS")
-    links = [
-        f"Shodan       : https://shodan.io/host/{ip}",
-        f"VirusTotal   : https://virustotal.com/gui/ip-address/{ip}",
-        f"AbuseIPDB    : https://abuseipdb.com/check/{ip}",
-        f"AlienVault   : https://otx.alienvault.com/indicator/ip/{ip}",
-        f"Censys       : https://search.censys.io/hosts/{ip}",
-        f"GreyNoise    : https://viz.greynoise.io/ip/{ip}",
-        f"IBM XForce   : https://exchange.xforce.ibmcloud.com/ip/{ip}",
-    ]
-    for link in links:
-        print(Fore.CYAN + f"  -> {link}")
+    show_subsection("THREAT LINKS")
+    print(Fore.CYAN + "  -> Shodan      : https://shodan.io/host/" + ip)
+    print(Fore.CYAN + "  -> VirusTotal  : https://virustotal.com/gui/ip-address/" + ip)
+    print(Fore.CYAN + "  -> AbuseIPDB   : https://abuseipdb.com/check/" + ip)
+    print(Fore.CYAN + "  -> AlienVault  : https://otx.alienvault.com/indicator/ip/" + ip)
+    print(Fore.CYAN + "  -> Censys      : https://search.censys.io/hosts/" + ip)
+    print(Fore.CYAN + "  -> GreyNoise   : https://viz.greynoise.io/ip/" + ip)
 
     STATS["ips_scanned"] += 1
-    add_history("IP", ip, f"{len(open_ports)} ports open")
-    log("IP intelligence complete", "SUCCESS")
-    save_prompt(output, ip, "IP")
+    add_history("IP", ip, str(len(open_ports)) + " ports open")
+    show_log("IP intelligence complete", "SUCCESS")
+    ask_save(output, ip, "IP")
 
-# ================================================================
-# MODULE 3: EMAIL OSINT
-# ================================================================
-
-def get_email_intelligence(email):
-    section(f"EMAIL INTELLIGENCE: {email}")
+def get_email_info(email):
+    show_section("EMAIL INTELLIGENCE: " + email)
 
     if "@" not in email:
-        log("Invalid email format!", "ERROR")
+        show_log("Invalid email format!", "ERROR")
         return
 
     parts  = email.split("@")
@@ -519,547 +464,445 @@ def get_email_intelligence(email):
     domain = parts[1]
     output = ""
 
-    subsection("EMAIL BREAKDOWN")
-    info("Full Email",     email,          Fore.WHITE)
-    info("Username",       user,           Fore.YELLOW)
-    info("Domain",         domain,         Fore.YELLOW)
-    info("Length",         str(len(email)),Fore.WHITE)
-    info("Has Numbers",    str(any(c.isdigit() for c in user)), Fore.WHITE)
-    info("Has Dots",       str("." in user), Fore.WHITE)
-    info("Has Underscore", str("_" in user), Fore.WHITE)
+    show_subsection("EMAIL BREAKDOWN")
+    show_info("Full Email",     email,           Fore.WHITE)
+    show_info("Username",       user,            Fore.YELLOW)
+    show_info("Domain",         domain,          Fore.YELLOW)
+    show_info("Has Numbers",    str(any(c.isdigit() for c in user)), Fore.WHITE)
+    show_info("Has Dots",       str("." in user), Fore.WHITE)
+    show_info("Has Underscore", str("_" in user), Fore.WHITE)
 
-    subsection("API 1 - EmailRep.io")
-    er = api_request(f"{APIS['emailrep']}/{email}", "EmailRep.io")
+    show_subsection("API 1 - EmailRep.io")
+    er = call_api(APIS["emailrep"] + "/" + email, "EmailRep.io")
     if er and isinstance(er, dict):
-        api_result("EmailRep.io", "Data received", Fore.GREEN)
-        info("Reputation",         str(er.get("reputation", "N/A")),            Fore.YELLOW)
-        info("Suspicious",         str(er.get("suspicious", "N/A")),            Fore.RED if er.get("suspicious") else Fore.GREEN)
+        print(Fore.GREEN + "  [+] EmailRep data received")
+        show_info("Reputation",         str(er.get("reputation", "N/A")), Fore.YELLOW)
         details = er.get("details", {})
-        info("Credentials Leaked", str(details.get("credentials_leaked", False)), Fore.RED if details.get("credentials_leaked") else Fore.GREEN)
-        info("Disposable",         str(details.get("disposable", False)),        Fore.RED if details.get("disposable") else Fore.GREEN)
-        info("Blacklisted",        str(details.get("blacklisted", False)),       Fore.RED if details.get("blacklisted") else Fore.GREEN)
-        info("Valid MX",           str(details.get("valid_mx", False)),          Fore.GREEN if details.get("valid_mx") else Fore.RED)
-        info("Free Provider",      str(details.get("free_provider", False)),     Fore.WHITE)
-        output += f"=== EmailRep ===\nReputation: {er.get('reputation')}\nSuspicious: {er.get('suspicious')}\n\n"
+        cred_leaked = details.get("credentials_leaked", False)
+        disposable  = details.get("disposable", False)
+        blacklisted = details.get("blacklisted", False)
+        valid_mx    = details.get("valid_mx", False)
+        show_info("Credentials Leaked", str(cred_leaked), Fore.RED   if cred_leaked else Fore.GREEN)
+        show_info("Disposable",         str(disposable),  Fore.RED   if disposable  else Fore.GREEN)
+        show_info("Blacklisted",        str(blacklisted), Fore.RED   if blacklisted else Fore.GREEN)
+        show_info("Valid MX",           str(valid_mx),    Fore.GREEN if valid_mx    else Fore.RED)
+        output += "Reputation: " + str(er.get("reputation")) + "\nCredentials Leaked: " + str(cred_leaked) + "\n\n"
 
-    subsection("API 2 - Disify")
-    di = api_request(f"{APIS['disify']}/{email}", "Disify")
+    show_subsection("API 2 - Disify")
+    di = call_api(APIS["disify"] + "/" + email, "Disify")
     if di and isinstance(di, dict):
-        api_result("Disify", "Data received", Fore.GREEN)
-        info("Valid Format", str(di.get("format", False)),     Fore.GREEN if di.get("format") else Fore.RED)
-        info("Disposable",   str(di.get("disposable", False)), Fore.RED if di.get("disposable") else Fore.GREEN)
-        info("DNS Valid",    str(di.get("dns", False)),        Fore.GREEN if di.get("dns") else Fore.RED)
+        print(Fore.GREEN + "  [+] Disify data received")
+        show_info("Valid Format", str(di.get("format", False)),     Fore.GREEN if di.get("format")      else Fore.RED)
+        show_info("Disposable",   str(di.get("disposable", False)), Fore.RED   if di.get("disposable")  else Fore.GREEN)
+        show_info("DNS Valid",    str(di.get("dns", False)),        Fore.GREEN if di.get("dns")         else Fore.RED)
 
-    subsection("PROVIDER DETECTION")
+    show_subsection("PROVIDER DETECTION")
     providers = {
-        "gmail.com": ("Google Gmail", "High"),
-        "yahoo.com": ("Yahoo Mail", "Medium"),
-        "hotmail.com": ("Microsoft Hotmail", "High"),
-        "outlook.com": ("Microsoft Outlook", "High"),
-        "protonmail.com": ("ProtonMail E2EE", "Very High"),
-        "proton.me": ("ProtonMail E2EE", "Very High"),
-        "tutanota.com": ("Tutanota E2EE", "Very High"),
-        "icloud.com": ("Apple iCloud", "High"),
-        "aol.com": ("AOL Mail", "Low"),
-        "zoho.com": ("Zoho Mail", "Medium"),
-        "yandex.com": ("Yandex Mail", "Low"),
-        "yandex.ru": ("Yandex Mail", "Low"),
-        "gmx.com": ("GMX Mail", "Medium"),
-        "mail.com": ("Mail.com", "Medium"),
-        "mailinator.com": ("Mailinator Disposable", "None"),
-        "guerrillamail.com": ("Guerrilla Disposable", "None"),
-        "10minutemail.com": ("10 Minute Mail", "None"),
-        "tempmail.com": ("Temp Mail", "None"),
+        "gmail.com"        : ("Google Gmail",         "High"),
+        "yahoo.com"        : ("Yahoo Mail",            "Medium"),
+        "hotmail.com"      : ("Microsoft Hotmail",     "High"),
+        "outlook.com"      : ("Microsoft Outlook",     "High"),
+        "protonmail.com"   : ("ProtonMail E2EE",       "Very High"),
+        "proton.me"        : ("ProtonMail E2EE",       "Very High"),
+        "tutanota.com"     : ("Tutanota E2EE",         "Very High"),
+        "icloud.com"       : ("Apple iCloud",          "High"),
+        "aol.com"          : ("AOL Mail",              "Low"),
+        "zoho.com"         : ("Zoho Mail",             "Medium"),
+        "yandex.com"       : ("Yandex Mail",           "Low"),
+        "yandex.ru"        : ("Yandex Mail",           "Low"),
+        "gmx.com"          : ("GMX Mail",              "Medium"),
+        "mail.com"         : ("Mail.com",              "Medium"),
+        "mailinator.com"   : ("Mailinator Disposable", "None"),
+        "guerrillamail.com": ("Guerrilla Disposable",  "None"),
+        "10minutemail.com" : ("10 Minute Mail",        "None"),
+        "tempmail.com"     : ("Temp Mail",             "None"),
     }
     provider_info = providers.get(domain, ("Custom Domain", "Unknown"))
-    info("Provider",  provider_info[0], Fore.CYAN)
-    info("Security",  provider_info[1], Fore.GREEN if provider_info[1] in ["High", "Very High"] else Fore.RED if provider_info[1] in ["Low", "None"] else Fore.YELLOW)
+    sec = provider_info[1]
+    sec_color = Fore.GREEN if sec in ["High", "Very High"] else Fore.RED if sec in ["Low", "None"] else Fore.YELLOW
+    show_info("Provider", provider_info[0], Fore.CYAN)
+    show_info("Security", sec, sec_color)
 
-    subsection("BREACH LINKS")
-    breach_links = [
-        f"HaveIBeenPwned  : https://haveibeenpwned.com/account/{email}",
-        f"Dehashed        : https://dehashed.com/search?query={email}",
-        f"IntelX          : https://intelx.io/?s={email}",
-        f"LeakCheck       : https://leakcheck.io/search/{email}",
-        f"Epieos          : https://epieos.com/?q={email}",
-    ]
-    for link in breach_links:
-        print(Fore.CYAN + f"  -> {link}")
+    show_subsection("BREACH LINKS")
+    print(Fore.CYAN + "  -> HaveIBeenPwned : https://haveibeenpwned.com/account/" + email)
+    print(Fore.CYAN + "  -> Dehashed       : https://dehashed.com/search?query=" + email)
+    print(Fore.CYAN + "  -> IntelX         : https://intelx.io/?s=" + email)
+    print(Fore.CYAN + "  -> LeakCheck      : https://leakcheck.io/search/" + email)
+    print(Fore.CYAN + "  -> Epieos         : https://epieos.com/?q=" + email)
+    print(Fore.CYAN + "  -> Hunter.io      : https://hunter.io/email-verifier/" + email)
 
     STATS["emails_analyzed"] += 1
     add_history("Email", email, "Analysis complete")
-    log("Email intelligence complete", "SUCCESS")
-    save_prompt(output, email, "Email")
+    show_log("Email intelligence complete", "SUCCESS")
+    ask_save(output, email, "Email")
 
-# ================================================================
-# MODULE 4: PHONE INTELLIGENCE
-# ================================================================
-
-def get_phone_intelligence(phone):
-    section(f"PHONE INTELLIGENCE: {phone}")
-    log("Analyzing phone number...", "SCAN")
-
+def get_phone_info(phone):
+    show_section("PHONE INTELLIGENCE: " + phone)
     clean  = "".join(c for c in phone if c.isdigit() or c == "+")
     digits = "".join(c for c in clean if c.isdigit())
     output = ""
 
-    subsection("NUMBER ANALYSIS")
-    info("Original",    phone,           Fore.WHITE)
-    info("Cleaned",     clean,           Fore.YELLOW)
-    info("Digits Only", digits,          Fore.WHITE)
-    info("Length",      str(len(digits)),Fore.WHITE)
+    show_subsection("NUMBER ANALYSIS")
+    show_info("Original", phone,            Fore.WHITE)
+    show_info("Cleaned",  clean,            Fore.YELLOW)
+    show_info("Digits",   digits,           Fore.WHITE)
+    show_info("Length",   str(len(digits)), Fore.WHITE)
 
     fmt = "Unknown"
-    if len(digits) == 10:  fmt = "National (10 digits)"
-    if len(digits) == 11:  fmt = "International (11 digits)"
-    if len(digits) == 12:  fmt = "International with code"
+    if len(digits) == 10: fmt = "National (10 digits)"
+    if len(digits) == 11: fmt = "International (11 digits)"
+    if len(digits) == 12: fmt = "International with code"
     if clean.startswith("+"): fmt += " - E.164"
-    info("Format", fmt, Fore.CYAN)
+    show_info("Format", fmt, Fore.CYAN)
 
-    subsection("COUNTRY DETECTION")
+    show_subsection("COUNTRY DETECTION")
     countries = [
-        ("+1",    "USA / Canada",    "North America"),
-        ("+44",   "United Kingdom",  "Europe"),
-        ("+91",   "India",           "Asia"),
-        ("+86",   "China",           "Asia"),
-        ("+81",   "Japan",           "Asia"),
-        ("+49",   "Germany",         "Europe"),
-        ("+33",   "France",          "Europe"),
-        ("+39",   "Italy",           "Europe"),
-        ("+34",   "Spain",           "Europe"),
-        ("+7",    "Russia",          "Europe/Asia"),
-        ("+55",   "Brazil",          "South America"),
-        ("+82",   "South Korea",     "Asia"),
-        ("+90",   "Turkey",          "Europe/Asia"),
-        ("+92",   "Pakistan",        "Asia"),
-        ("+62",   "Indonesia",       "Asia"),
-        ("+63",   "Philippines",     "Asia"),
-        ("+880",  "Bangladesh",      "Asia"),
-        ("+234",  "Nigeria",         "Africa"),
-        ("+27",   "South Africa",    "Africa"),
-        ("+20",   "Egypt",           "Africa"),
-        ("+971",  "UAE",             "Middle East"),
-        ("+966",  "Saudi Arabia",    "Middle East"),
-        ("+52",   "Mexico",          "North America"),
-        ("+61",   "Australia",       "Oceania"),
-        ("+64",   "New Zealand",     "Oceania"),
-        ("+65",   "Singapore",       "Asia"),
-        ("+60",   "Malaysia",        "Asia"),
-        ("+66",   "Thailand",        "Asia"),
-        ("+84",   "Vietnam",         "Asia"),
-        ("+212",  "Morocco",         "Africa"),
-        ("+213",  "Algeria",         "Africa"),
-        ("+98",   "Iran",            "Middle East"),
-        ("+964",  "Iraq",            "Middle East"),
-        ("+965",  "Kuwait",          "Middle East"),
-        ("+974",  "Qatar",           "Middle East"),
-        ("+961",  "Lebanon",         "Middle East"),
-        ("+962",  "Jordan",          "Middle East"),
-        ("+968",  "Oman",            "Middle East"),
-        ("+973",  "Bahrain",         "Middle East"),
+        ("+1",   "USA / Canada",   "North America"),
+        ("+44",  "United Kingdom", "Europe"),
+        ("+91",  "India",          "Asia"),
+        ("+86",  "China",          "Asia"),
+        ("+81",  "Japan",          "Asia"),
+        ("+49",  "Germany",        "Europe"),
+        ("+33",  "France",         "Europe"),
+        ("+39",  "Italy",          "Europe"),
+        ("+34",  "Spain",          "Europe"),
+        ("+7",   "Russia",         "Europe/Asia"),
+        ("+55",  "Brazil",         "South America"),
+        ("+82",  "South Korea",    "Asia"),
+        ("+90",  "Turkey",         "Europe/Asia"),
+        ("+92",  "Pakistan",       "Asia"),
+        ("+62",  "Indonesia",      "Asia"),
+        ("+63",  "Philippines",    "Asia"),
+        ("+880", "Bangladesh",     "Asia"),
+        ("+234", "Nigeria",        "Africa"),
+        ("+27",  "South Africa",   "Africa"),
+        ("+20",  "Egypt",          "Africa"),
+        ("+971", "UAE",            "Middle East"),
+        ("+966", "Saudi Arabia",   "Middle East"),
+        ("+52",  "Mexico",         "North America"),
+        ("+61",  "Australia",      "Oceania"),
+        ("+64",  "New Zealand",    "Oceania"),
+        ("+65",  "Singapore",      "Asia"),
+        ("+60",  "Malaysia",       "Asia"),
+        ("+66",  "Thailand",       "Asia"),
+        ("+84",  "Vietnam",        "Asia"),
+        ("+212", "Morocco",        "Africa"),
+        ("+213", "Algeria",        "Africa"),
+        ("+98",  "Iran",           "Middle East"),
+        ("+964", "Iraq",           "Middle East"),
+        ("+965", "Kuwait",         "Middle East"),
+        ("+974", "Qatar",          "Middle East"),
+        ("+961", "Lebanon",        "Middle East"),
+        ("+968", "Oman",           "Middle East"),
+        ("+973", "Bahrain",        "Middle East"),
+        ("+962", "Jordan",         "Middle East"),
+        ("+249", "Sudan",          "Africa"),
+        ("+254", "Kenya",          "Africa"),
+        ("+30",  "Greece",         "Europe"),
+        ("+31",  "Netherlands",    "Europe"),
+        ("+32",  "Belgium",        "Europe"),
+        ("+41",  "Switzerland",    "Europe"),
+        ("+46",  "Sweden",         "Europe"),
+        ("+47",  "Norway",         "Europe"),
+        ("+48",  "Poland",         "Europe"),
+        ("+40",  "Romania",        "Europe"),
     ]
 
-    country_name = "Unknown"
+    country_name   = "Unknown"
     country_region = "Unknown"
     for code, name, region in countries:
         if clean.startswith(code):
-            country_name = name
+            country_name   = name
             country_region = region
             break
 
-    info("Country", country_name,   Fore.GREEN)
-    info("Region",  country_region, Fore.YELLOW)
+    show_info("Country", country_name,   Fore.GREEN)
+    show_info("Region",  country_region, Fore.YELLOW)
 
-    subsection("FORMATTED NUMBERS")
-    print(Fore.CYAN  + f"  E.164      : +{digits}")
-    print(Fore.WHITE + f"  RFC3966    : tel:+{digits}")
+    show_subsection("FORMATTED NUMBERS")
+    print(Fore.CYAN  + "  E.164   : +" + digits)
+    print(Fore.WHITE + "  RFC3966 : tel:+" + digits)
 
-    subsection("OSINT TOOLS")
-    links = [
-        f"Google     : https://google.com/search?q=%22{clean}%22",
-        f"Truecaller : https://truecaller.com/search/us/{digits}",
-        f"NumLookup  : https://numlookup.com/?number={clean}",
-        f"WhitePages : https://whitepages.com/phone/{digits}",
-        f"Sync.me    : https://sync.me/search/?number={clean}",
-    ]
-    for link in links:
-        print(Fore.CYAN + f"  -> {link}")
+    show_subsection("OSINT TOOLS")
+    print(Fore.CYAN + "  -> Google     : https://google.com/search?q=%22" + clean + "%22")
+    print(Fore.CYAN + "  -> Truecaller : https://truecaller.com/search/us/" + digits)
+    print(Fore.CYAN + "  -> NumLookup  : https://numlookup.com/?number=" + clean)
+    print(Fore.CYAN + "  -> WhitePages : https://whitepages.com/phone/" + digits)
+    print(Fore.CYAN + "  -> Sync.me    : https://sync.me/search/?number=" + clean)
 
-    output += f"Phone: {phone}\nCountry: {country_name}\n"
+    output += "Phone: " + phone + "\nCountry: " + country_name + "\n"
     STATS["phones_analyzed"] += 1
     add_history("Phone", phone, country_name)
-    log("Phone analysis complete", "SUCCESS")
-    save_prompt(output, digits, "Phone")
+    show_log("Phone analysis complete", "SUCCESS")
+    ask_save(output, digits, "Phone")
 
-# ================================================================
-# MODULE 5: DOMAIN INTELLIGENCE
-# ================================================================
-
-def get_domain_intelligence(domain):
-    section(f"DOMAIN INTELLIGENCE: {domain}")
-    log("Comprehensive domain scan...", "SCAN")
-
+def get_domain_info(domain):
+    show_section("DOMAIN INTELLIGENCE: " + domain)
+    show_log("Comprehensive domain scan...", "SCAN")
     output = ""
 
-    subsection("API 1 - HackerTarget DNS")
-    ht_dns = api_request(f"{APIS['hackertarget']}/dnslookup/?q={domain}", "HackerTarget DNS")
-    if ht_dns:
-        api_result("HackerTarget", "DNS data received", Fore.GREEN)
-        print(Fore.YELLOW + f"  {ht_dns}")
-        output += f"=== HackerTarget DNS ===\n{ht_dns}\n\n"
+    show_subsection("API 1 - HackerTarget DNS")
+    ht = call_api(APIS["hackertarget"] + "/dnslookup/?q=" + domain, "HackerTarget")
+    if ht:
+        print(Fore.GREEN + "  [+] HackerTarget data received")
+        print(Fore.YELLOW + "  " + str(ht)[:500])
+        output += "HackerTarget DNS:\n" + str(ht) + "\n\n"
 
-    subsection("API 2 - crt.sh SSL Certificates")
-    crt = api_request(f"{APIS['crt_sh']}/?q={domain}&output=json", "crt.sh")
+    show_subsection("API 2 - crt.sh SSL Certificates")
+    crt = call_api(APIS["crtsh"] + "/?q=" + domain + "&output=json", "crt.sh")
     if crt and isinstance(crt, list):
-        api_result("crt.sh", f"{len(crt)} certificates found", Fore.GREEN)
+        print(Fore.GREEN + "  [+] " + str(len(crt)) + " certificates found")
         unique = set()
         for cert in crt[:20]:
             for name in cert.get("name_value", "").split("\n"):
-                if name not in unique:
+                name = name.strip()
+                if name and name not in unique:
                     unique.add(name)
-                    print(Fore.GREEN + f"  -> {name}")
-        output += f"=== SSL Certs ===\n" + "\n".join(unique) + "\n\n"
+                    print(Fore.GREEN + "  -> " + name)
+        output += "SSL Certs:\n" + "\n".join(unique) + "\n\n"
 
-    subsection("API 3 - AlienVault Domain Intel")
-    av = api_request(f"{APIS['alienvault']}/indicators/domain/{domain}/general", "AlienVault")
+    show_subsection("API 3 - AlienVault Domain Intel")
+    av = call_api(APIS["alienvault"] + "/indicators/domain/" + domain + "/general", "AlienVault")
     if av and isinstance(av, dict):
-        api_result("AlienVault OTX", "Domain intel received", Fore.GREEN)
         pulse_count = av.get("pulse_info", {}).get("count", 0)
-        info("Pulse Count", str(pulse_count), Fore.RED if pulse_count > 0 else Fore.GREEN)
+        show_info("Pulse Count", str(pulse_count), Fore.RED if pulse_count > 0 else Fore.GREEN)
         if pulse_count > 0:
             print(Fore.RED + "  [!] Domain flagged in threat intelligence!")
 
-    subsection("DNS RECORDS")
-    import subprocess as sp
-    for record_type in ["A", "MX", "NS", "TXT"]:
-        try:
-            result = sp.run(["nslookup", f"-type={record_type}", domain],
-                          capture_output=True, text=True, timeout=10)
-            if result.stdout:
-                print(Fore.CYAN + f"  [{record_type} Records]")
-                for line in result.stdout.split("\n"):
-                    if line.strip() and "server" not in line.lower():
-                        print(Fore.YELLOW + f"    {line.strip()}")
-        except:
-            pass
-
-    subsection("SUBDOMAIN SCAN")
-    log("Scanning common subdomains...", "SCAN")
-    subs = ["www", "mail", "ftp", "admin", "api", "dev", "staging",
-            "blog", "shop", "m", "app", "portal", "vpn", "remote",
-            "smtp", "pop", "ns1", "ns2", "db", "git", "jenkins"]
+    show_subsection("SUBDOMAIN SCAN")
+    subs = [
+        "www", "mail", "ftp", "admin", "api", "dev", "staging",
+        "blog", "shop", "m", "app", "portal", "vpn", "remote",
+        "smtp", "pop", "ns1", "ns2", "db", "git", "jenkins",
+        "test", "beta", "demo", "cdn", "static", "files", "backup"
+    ]
 
     found_subs = []
     for i, sub in enumerate(subs):
-        progress_bar(i+1, len(subs), f"{sub}.{domain}")
-        fqdn = f"{sub}.{domain}"
+        show_progress(i + 1, len(subs), sub + "." + domain)
+        fqdn = sub + "." + domain
         try:
             socket.gethostbyname(fqdn)
             print()
-            print(Fore.GREEN + f"  [FOUND] {fqdn}")
+            print(Fore.GREEN + "  [FOUND] " + fqdn)
             found_subs.append(fqdn)
         except:
             pass
 
     print()
-    info("Subdomains Found", str(len(found_subs)), Fore.GREEN)
+    show_info("Subdomains Found", str(len(found_subs)), Fore.GREEN)
 
-    subsection("OSINT TOOLS")
-    links = [
-        f"WHOIS          : https://who.is/whois/{domain}",
-        f"Shodan         : https://shodan.io/search?query=hostname:{domain}",
-        f"VirusTotal     : https://virustotal.com/gui/domain/{domain}",
-        f"URLScan        : https://urlscan.io/search/#{domain}",
-        f"Wayback        : https://web.archive.org/web/*/{domain}",
-        f"SecurityTrails : https://securitytrails.com/domain/{domain}/dns",
-        f"crt.sh         : https://crt.sh/?q={domain}",
-        f"Censys         : https://search.censys.io/search?q={domain}",
-    ]
-    for link in links:
-        print(Fore.CYAN + f"  -> {link}")
+    show_subsection("OSINT TOOLS")
+    print(Fore.CYAN + "  -> WHOIS          : https://who.is/whois/" + domain)
+    print(Fore.CYAN + "  -> Shodan         : https://shodan.io/search?query=hostname:" + domain)
+    print(Fore.CYAN + "  -> VirusTotal     : https://virustotal.com/gui/domain/" + domain)
+    print(Fore.CYAN + "  -> URLScan        : https://urlscan.io/search/#" + domain)
+    print(Fore.CYAN + "  -> Wayback        : https://web.archive.org/web/*/" + domain)
+    print(Fore.CYAN + "  -> SecurityTrails : https://securitytrails.com/domain/" + domain + "/dns")
+    print(Fore.CYAN + "  -> crt.sh         : https://crt.sh/?q=" + domain)
+    print(Fore.CYAN + "  -> Censys         : https://search.censys.io/search?q=" + domain)
+    print(Fore.CYAN + "  -> AlienVault     : https://otx.alienvault.com/indicator/domain/" + domain)
 
     STATS["domains_scanned"] += 1
-    add_history("Domain", domain, f"{len(found_subs)} subdomains")
-    log("Domain intelligence complete", "SUCCESS")
-    save_prompt(output, domain, "Domain")
-
-# ================================================================
-# MODULE 6: PERSON SEARCH
-# ================================================================
+    add_history("Domain", domain, str(len(found_subs)) + " subdomains")
+    show_log("Domain intelligence complete", "SUCCESS")
+    ask_save(output, domain, "Domain")
 
 def search_person(first, last, location="", age=""):
-    full_name = f"{first} {last}"
-    section(f"PERSON SEARCH: {full_name}")
-    log(f"Person intelligence: {full_name}", "SCAN")
+    full = first + " " + last
+    show_section("PERSON SEARCH: " + full)
+    show_info("First Name", first, Fore.YELLOW)
+    show_info("Last Name",  last,  Fore.YELLOW)
+    show_info("Full Name",  full,  Fore.WHITE)
+    if location: show_info("Location", location, Fore.CYAN)
+    if age:      show_info("Age",      age,      Fore.WHITE)
 
-    info("First Name", first,     Fore.YELLOW)
-    info("Last Name",  last,      Fore.YELLOW)
-    info("Full Name",  full_name, Fore.WHITE)
-    if location: info("Location", location, Fore.CYAN)
-    if age:      info("Age",      age,      Fore.WHITE)
+    encoded = requests.utils.quote(full)
+    output  = "Target: " + full + "\nLocation: " + location + "\n\n"
 
-    encoded = requests.utils.quote(full_name)
-    output  = f"Target: {full_name}\nLocation: {location}\n\n"
-
-    subsection("PEOPLE SEARCH ENGINES")
+    show_subsection("PEOPLE SEARCH ENGINES")
     engines = [
-        f"Spokeo           : https://spokeo.com/search?q={encoded}",
-        f"BeenVerified     : https://beenverified.com/people/{first}-{last}",
-        f"Whitepages       : https://whitepages.com/name/{first}-{last}",
-        f"TruePeopleSearch : https://truepeoplesearch.com/results?name={encoded}",
-        f"FastPeopleSearch : https://fastpeoplesearch.com/name/{first}-{last}",
-        f"411.com          : https://411.com/people/{encoded}",
-        f"PeekYou          : https://peekyou.com/{first}+{last}",
-        f"Pipl             : https://pipl.com/search/?q={encoded}",
-        f"Radaris          : https://radaris.com/p/{first}/{last}",
-        f"ZabaSearch       : https://zabasearch.com/people/{first}+{last}",
+        "Spokeo           : https://spokeo.com/search?q=" + encoded,
+        "BeenVerified     : https://beenverified.com/people/" + first + "-" + last,
+        "Whitepages       : https://whitepages.com/name/" + first + "-" + last,
+        "TruePeopleSearch : https://truepeoplesearch.com/results?name=" + encoded,
+        "FastPeopleSearch : https://fastpeoplesearch.com/name/" + first + "-" + last,
+        "411.com          : https://411.com/people/" + encoded,
+        "PeekYou          : https://peekyou.com/" + first + "+" + last,
+        "Pipl             : https://pipl.com/search/?q=" + encoded,
+        "Radaris          : https://radaris.com/p/" + first + "/" + last,
+        "Intelius         : https://intelius.com/people/" + first + "-" + last,
     ]
     for e in engines:
-        print(Fore.CYAN + f"  -> {e}")
+        print(Fore.CYAN + "  -> " + e)
 
-    subsection("SOCIAL MEDIA")
-    social = [
-        f"LinkedIn  : https://linkedin.com/search/results/people/?keywords={encoded}",
-        f"Facebook  : https://facebook.com/search/people/?q={encoded}",
-        f"Twitter   : https://twitter.com/search?q=%22{full_name}%22&f=user",
-        f"Instagram : https://instagram.com/explore/tags/{first+last}/",
-        f"TikTok    : https://tiktok.com/search/user?q={encoded}",
-    ]
-    for s in social:
-        print(Fore.CYAN + f"  -> {s}")
+    show_subsection("SOCIAL MEDIA")
+    print(Fore.CYAN + "  -> LinkedIn  : https://linkedin.com/search/results/people/?keywords=" + encoded)
+    print(Fore.CYAN + "  -> Facebook  : https://facebook.com/search/people/?q=" + encoded)
+    print(Fore.CYAN + "  -> Twitter   : https://twitter.com/search?q=%22" + encoded + "%22&f=user")
+    print(Fore.CYAN + "  -> TikTok    : https://tiktok.com/search/user?q=" + encoded)
 
-    subsection("GOOGLE DORKS")
-    dorks = [
-        f'https://google.com/search?q="{full_name}"',
-        f'https://google.com/search?q="{full_name}"+"{location}"',
-        f'https://google.com/search?q="{full_name}"+site:linkedin.com',
-        f'https://google.com/search?q="{full_name}"+filetype:pdf',
-        f'https://google.com/search?q="{full_name}"+email',
-        f'https://google.com/search?q="{full_name}"+phone',
-    ]
-    for d in dorks:
-        print(Fore.CYAN + f"  -> {d}")
+    show_subsection("GOOGLE DORKS")
+    print(Fore.CYAN + "  -> https://google.com/search?q=%22" + full + "%22")
+    print(Fore.CYAN + "  -> https://google.com/search?q=%22" + full + "%22+site:linkedin.com")
+    print(Fore.CYAN + "  -> https://google.com/search?q=%22" + full + "%22+filetype:pdf")
+    print(Fore.CYAN + "  -> https://google.com/search?q=%22" + full + "%22+email")
+    print(Fore.CYAN + "  -> https://google.com/search?q=%22" + full + "%22+phone")
 
-    add_history("Person", full_name, "Search complete")
-    log("Person search complete", "SUCCESS")
-    save_prompt(output, f"{first}-{last}", "Person")
-
-# ================================================================
-# MODULE 7: BREACH HUNTER
-# ================================================================
+    add_history("Person", full, "Search complete")
+    show_log("Person search complete", "SUCCESS")
+    ask_save(output, first + "-" + last, "Person")
 
 def search_breaches(target):
-    section(f"BREACH HUNTER: {target}")
-    log("Searching breach databases...", "SCAN")
+    show_section("BREACH HUNTER: " + target)
+    show_log("Searching breach databases...", "SCAN")
 
-    subsection("BREACH DATABASES")
-    dbs = [
-        f"HaveIBeenPwned  : https://haveibeenpwned.com/account/{target}",
-        f"Dehashed        : https://dehashed.com/search?query={target}",
-        f"LeakCheck       : https://leakcheck.io/search/{target}",
-        f"IntelX          : https://intelx.io/?s={target}",
-        f"BreachDirectory : https://breachdirectory.org",
-        f"SnusBase        : https://snusbase.com",
-        f"WeLeakInfo      : https://weleakinfo.to/search/{target}",
-        f"PSBDMP          : https://psbdmp.ws/search?q={target}",
-    ]
-    for db in dbs:
-        print(Fore.CYAN + f"  -> {db}")
+    show_subsection("BREACH DATABASES")
+    print(Fore.CYAN + "  -> HaveIBeenPwned  : https://haveibeenpwned.com/account/" + target)
+    print(Fore.CYAN + "  -> Dehashed        : https://dehashed.com/search?query=" + target)
+    print(Fore.CYAN + "  -> LeakCheck       : https://leakcheck.io/search/" + target)
+    print(Fore.CYAN + "  -> IntelX          : https://intelx.io/?s=" + target)
+    print(Fore.CYAN + "  -> BreachDirectory : https://breachdirectory.org")
+    print(Fore.CYAN + "  -> SnusBase        : https://snusbase.com")
+    print(Fore.CYAN + "  -> WeLeakInfo      : https://weleakinfo.to/search/" + target)
+    print(Fore.CYAN + "  -> PSBDMP          : https://psbdmp.ws/search?q=" + target)
 
-    subsection("PASTE SITES")
-    pastes = [
-        f"Pastebin    : https://pastebin.com/search?q={target}",
-        f"Hastebin    : https://hastebin.com/search/{target}",
-        f"Paste.ee    : https://paste.ee/search/{target}",
-    ]
-    for p in pastes:
-        print(Fore.CYAN + f"  -> {p}")
+    show_subsection("PASTE SITES")
+    print(Fore.CYAN + "  -> Pastebin : https://pastebin.com/search?q=" + target)
+    print(Fore.CYAN + "  -> Hastebin : https://hastebin.com/search/" + target)
 
-    subsection("GOOGLE DORKS")
-    dorks = [
-        f'https://google.com/search?q="{target}"+site:pastebin.com',
-        f'https://google.com/search?q="{target}"+password',
-        f'https://google.com/search?q="{target}"+leaked',
-        f'https://google.com/search?q="{target}"+breach',
-        f'https://google.com/search?q="{target}"+credentials',
-    ]
-    for d in dorks:
-        print(Fore.RED + f"  -> {d}")
+    show_subsection("GOOGLE DORKS")
+    print(Fore.RED + "  -> https://google.com/search?q=%22" + target + "%22+site:pastebin.com")
+    print(Fore.RED + "  -> https://google.com/search?q=%22" + target + "%22+password")
+    print(Fore.RED + "  -> https://google.com/search?q=%22" + target + "%22+leaked")
+    print(Fore.RED + "  -> https://google.com/search?q=%22" + target + "%22+breach")
+    print(Fore.RED + "  -> https://google.com/search?q=%22" + target + "%22+credentials")
 
     add_history("Breach", target, "Search complete")
-    log("Breach search complete", "SUCCESS")
-
-# ================================================================
-# MODULE 8: LOCAL NETWORK INFO
-# ================================================================
+    show_log("Breach search complete", "SUCCESS")
 
 def get_network_info():
-    section("LOCAL NETWORK INFORMATION")
-    log("Gathering system info...", "SCAN")
+    show_section("LOCAL NETWORK INFORMATION")
 
-    subsection("YOUR PUBLIC IP")
+    show_subsection("PUBLIC IP")
     try:
         pub = requests.get("https://api.ipify.org?format=json", timeout=5).json()
-        info("Public IP", pub.get("ip", "Unknown"), Fore.GREEN)
-        geo = api_request(f"{APIS['ip_api_com']}/{pub.get('ip')}", "ip-api.com")
+        pub_ip = pub.get("ip", "Unknown")
+        show_info("Public IP", pub_ip, Fore.GREEN)
+        geo = call_api(APIS["ip_api"] + "/" + pub_ip, "ip-api.com")
         if geo and isinstance(geo, dict) and geo.get("status") == "success":
-            info("Location", f"{geo.get('city')}, {geo.get('country')}", Fore.YELLOW)
-            info("ISP",      geo.get("isp", "N/A"), Fore.CYAN)
+            show_info("Location", str(geo.get("city")) + ", " + str(geo.get("country")), Fore.YELLOW)
+            show_info("ISP",      str(geo.get("isp", "N/A")), Fore.CYAN)
+            show_info("Proxy/VPN", str(geo.get("proxy", False)), Fore.RED if geo.get("proxy") else Fore.GREEN)
     except:
-        log("Could not fetch public IP", "ERROR")
+        show_log("Could not fetch public IP", "ERROR")
 
-    subsection("SYSTEM INFORMATION")
-    info("Hostname",   socket.gethostname(),  Fore.WHITE)
-    info("Platform",   platform.system(),     Fore.WHITE)
-    info("Version",    platform.version(),    Fore.WHITE)
-    info("Machine",    platform.machine(),    Fore.WHITE)
-    info("Python",     platform.python_version(), Fore.GREEN)
-    info("Username",   os.environ.get("USER", os.environ.get("USERNAME", "Unknown")), Fore.WHITE)
+    show_subsection("SYSTEM INFO")
+    show_info("Hostname",   socket.gethostname(),         Fore.WHITE)
+    show_info("Platform",   platform.system(),            Fore.WHITE)
+    show_info("Machine",    platform.machine(),           Fore.WHITE)
+    show_info("Python",     platform.python_version(),    Fore.GREEN)
+    show_info("Username",   os.environ.get("USER", os.environ.get("USERNAME", "Unknown")), Fore.WHITE)
 
-    subsection("LOCAL IP ADDRESSES")
+    show_subsection("LOCAL IP")
     try:
-        hostname = socket.gethostname()
-        local_ip = socket.gethostbyname(hostname)
-        info("Local IP", local_ip, Fore.YELLOW)
+        local_ip = socket.gethostbyname(socket.gethostname())
+        show_info("Local IP", local_ip, Fore.YELLOW)
     except:
         pass
 
-    subsection("PRIVACY CHECK TOOLS")
-    tools = [
-        "IP Leak Test   : https://ipleak.net",
-        "DNS Leak Test  : https://dnsleaktest.com",
-        "WebRTC Test    : https://browserleaks.com/webrtc",
-        "Speed Test     : https://fast.com",
-        "Fingerprint    : https://browserleaks.com",
-    ]
-    for t in tools:
-        print(Fore.CYAN + f"  -> {t}")
+    show_subsection("PRIVACY TOOLS")
+    print(Fore.CYAN + "  -> IP Leak Test  : https://ipleak.net")
+    print(Fore.CYAN + "  -> DNS Leak Test : https://dnsleaktest.com")
+    print(Fore.CYAN + "  -> Speed Test    : https://fast.com")
+    print(Fore.CYAN + "  -> WebRTC Test   : https://browserleaks.com/webrtc")
 
-    log("Network scan complete", "SUCCESS")
+    show_log("Network scan complete", "SUCCESS")
 
-# ================================================================
-# MODULE 9: GOOGLE DORKS
-# ================================================================
-
-def get_google_dorks(target):
-    section(f"GOOGLE DORK GENERATOR: {target}")
+def get_dorks(target):
+    show_section("GOOGLE DORK GENERATOR: " + target)
     output = ""
 
-    subsection("BASIC SEARCHES")
-    basic = [
-        f'"{target}"',
-        f'intitle:"{target}"',
-        f'inurl:"{target}"',
-        f'intext:"{target}"',
+    show_subsection("BASIC SEARCHES")
+    dorks = [
+        "https://google.com/search?q=%22" + target + "%22",
+        "https://google.com/search?q=intitle:%22" + target + "%22",
+        "https://google.com/search?q=inurl:%22" + target + "%22",
+        "https://google.com/search?q=intext:%22" + target + "%22",
     ]
-    for d in basic:
-        url = f"https://google.com/search?q={requests.utils.quote(d)}"
-        print(Fore.CYAN + f"  -> {url}")
-        output += url + "\n"
+    for d in dorks:
+        print(Fore.CYAN + "  -> " + d)
+        output += d + "\n"
 
-    subsection("FILE SEARCHES")
+    show_subsection("FILE SEARCHES")
     for ft in ["pdf", "doc", "xls", "txt", "csv", "xml", "json", "sql", "log"]:
-        url = f'https://google.com/search?q="{target}"+filetype:{ft}'
-        print(Fore.CYAN + f"  -> {url}")
+        print(Fore.CYAN + "  -> https://google.com/search?q=%22" + target + "%22+filetype:" + ft)
 
-    subsection("SOCIAL MEDIA")
+    show_subsection("SOCIAL MEDIA")
     for site in ["linkedin.com", "facebook.com", "twitter.com", "instagram.com", "github.com"]:
-        url = f'https://google.com/search?q="{target}"+site:{site}'
-        print(Fore.CYAN + f"  -> {url}")
+        print(Fore.CYAN + "  -> https://google.com/search?q=%22" + target + "%22+site:" + site)
 
-    subsection("SENSITIVE SEARCHES")
-    for term in ["password", "email", "phone", "credentials", "api key", "leaked"]:
-        url = f'https://google.com/search?q="{target}"+{term}'
-        print(Fore.RED + f"  -> {url}")
+    show_subsection("SENSITIVE DATA")
+    for term in ["password", "email", "phone", "credentials", "api+key", "leaked"]:
+        print(Fore.RED + "  -> https://google.com/search?q=%22" + target + "%22+" + term)
 
-    subsection("OTHER ENGINES")
-    engines = [
-        f"Bing       : https://bing.com/search?q=%22{target}%22",
-        f"DuckDuckGo : https://duckduckgo.com/?q=%22{target}%22",
-        f"Yandex     : https://yandex.com/search/?text={target}",
-        f"Startpage  : https://startpage.com/search?q=%22{target}%22",
-    ]
-    for e in engines:
-        print(Fore.CYAN + f"  -> {e}")
+    show_subsection("OTHER ENGINES")
+    print(Fore.CYAN + "  -> Bing       : https://bing.com/search?q=%22" + target + "%22")
+    print(Fore.CYAN + "  -> DuckDuckGo : https://duckduckgo.com/?q=%22" + target + "%22")
+    print(Fore.CYAN + "  -> Yandex     : https://yandex.com/search/?text=" + target)
 
     add_history("Dorks", target, "Generated")
-    log("Dork generation complete", "SUCCESS")
-    save_prompt(output, target, "Dorks")
+    show_log("Dork generation complete", "SUCCESS")
+    ask_save(output, target, "Dorks")
 
-# ================================================================
-# MODULE 10: THREAT INTELLIGENCE
-# ================================================================
-
-def get_threat_intelligence(target):
-    section(f"THREAT INTELLIGENCE: {target}")
-    log("Gathering threat intel...", "SCAN")
+def get_threat_intel(target):
+    show_section("THREAT INTELLIGENCE: " + target)
     output = ""
 
-    subsection("AlienVault OTX API")
-    av = api_request(f"{APIS['alienvault']}/indicators/IPv4/{target}/general", "AlienVault OTX")
+    show_subsection("AlienVault OTX API")
+    av = call_api(APIS["alienvault"] + "/indicators/IPv4/" + target + "/general", "AlienVault OTX")
     if av and isinstance(av, dict):
-        api_result("AlienVault OTX", "Data received", Fore.GREEN)
         pulse_count = av.get("pulse_info", {}).get("count", 0)
-        info("Pulse Count", str(pulse_count), Fore.RED if pulse_count > 0 else Fore.GREEN)
-        info("Reputation",  str(av.get("reputation", "N/A")), Fore.YELLOW)
+        show_info("Pulse Count", str(pulse_count), Fore.RED if pulse_count > 0 else Fore.GREEN)
+        show_info("Reputation",  str(av.get("reputation", "N/A")), Fore.YELLOW)
         if pulse_count > 0:
-            print(Fore.RED + f"  [!] Target in {pulse_count} threat pulses!")
-        output += f"AlienVault Pulses: {pulse_count}\n"
+            print(Fore.RED + "  [!] Target flagged in " + str(pulse_count) + " threat pulses!")
+        output += "AlienVault Pulses: " + str(pulse_count) + "\n"
 
-    subsection("ThreatFox API")
-    tf = api_request(APIS["threatfox"], "ThreatFox",
-                    method="POST", data={"query": "search_ioc", "search_term": target})
-    if tf and isinstance(tf, dict):
-        api_result("ThreatFox", "Data received", Fore.GREEN)
-        info("Status", str(tf.get("query_status", "N/A")), Fore.GREEN)
-        if tf.get("data"):
-            print(Fore.RED + f"  [!] Found in ThreatFox database!")
-
-    subsection("THREAT INTEL LINKS")
-    links = [
-        f"AlienVault   : https://otx.alienvault.com/indicator/ip/{target}",
-        f"Shodan       : https://shodan.io/host/{target}",
-        f"VirusTotal   : https://virustotal.com/gui/ip-address/{target}",
-        f"AbuseIPDB    : https://abuseipdb.com/check/{target}",
-        f"ThreatCrowd  : https://threatcrowd.org/ip.php?ip={target}",
-        f"GreyNoise    : https://viz.greynoise.io/ip/{target}",
-        f"ThreatFox    : https://threatfox.abuse.ch/browse.php?search={target}",
-        f"IBM XForce   : https://exchange.xforce.ibmcloud.com/ip/{target}",
-    ]
-    for link in links:
-        print(Fore.CYAN + f"  -> {link}")
+    show_subsection("THREAT INTEL LINKS")
+    print(Fore.CYAN + "  -> AlienVault  : https://otx.alienvault.com/indicator/ip/" + target)
+    print(Fore.CYAN + "  -> Shodan      : https://shodan.io/host/" + target)
+    print(Fore.CYAN + "  -> VirusTotal  : https://virustotal.com/gui/ip-address/" + target)
+    print(Fore.CYAN + "  -> AbuseIPDB   : https://abuseipdb.com/check/" + target)
+    print(Fore.CYAN + "  -> ThreatCrowd : https://threatcrowd.org/ip.php?ip=" + target)
+    print(Fore.CYAN + "  -> GreyNoise   : https://viz.greynoise.io/ip/" + target)
+    print(Fore.CYAN + "  -> IBM XForce  : https://exchange.xforce.ibmcloud.com/ip/" + target)
+    print(Fore.CYAN + "  -> ThreatFox   : https://threatfox.abuse.ch/browse.php?search=" + target)
 
     add_history("Threat", target, "Intel gathered")
-    log("Threat intelligence complete", "SUCCESS")
-    save_prompt(output, target, "Threat")
+    show_log("Threat intelligence complete", "SUCCESS")
+    ask_save(output, target, "Threat")
 
-# ================================================================
-# STATISTICS
-# ================================================================
-
-def show_statistics():
-    section("SESSION STATISTICS")
+def show_stats():
+    show_section("SESSION STATISTICS")
     runtime = datetime.datetime.now() - START_TIME
-    hours, remainder = divmod(int(runtime.total_seconds()), 3600)
-    minutes, seconds = divmod(remainder, 60)
-
-    info("Runtime",          f"{hours}h {minutes}m {seconds}s", Fore.CYAN)
-    info("Total Scans",      str(STATS["total_scans"]),      Fore.YELLOW)
-    info("Profiles Found",   str(STATS["profiles_found"]),   Fore.GREEN)
-    info("IPs Scanned",      str(STATS["ips_scanned"]),      Fore.GREEN)
-    info("Open Ports",       str(STATS["open_ports"]),       Fore.RED)
-    info("Emails Analyzed",  str(STATS["emails_analyzed"]),  Fore.GREEN)
-    info("Phones Analyzed",  str(STATS["phones_analyzed"]),  Fore.GREEN)
-    info("Domains Scanned",  str(STATS["domains_scanned"]),  Fore.GREEN)
-    info("API Calls Made",   str(STATS["api_calls"]),        Fore.MAGENTA)
-    info("Reports Saved",    str(STATS["reports_saved"]),    Fore.CYAN)
-
-# ================================================================
-# SCAN HISTORY
-# ================================================================
+    total_secs = int(runtime.total_seconds())
+    hours   = total_secs // 3600
+    minutes = (total_secs % 3600) // 60
+    seconds = total_secs % 60
+    show_info("Runtime",         str(hours) + "h " + str(minutes) + "m " + str(seconds) + "s", Fore.CYAN)
+    show_info("Total Scans",     str(STATS["total_scans"]),     Fore.YELLOW)
+    show_info("Profiles Found",  str(STATS["profiles_found"]),  Fore.GREEN)
+    show_info("IPs Scanned",     str(STATS["ips_scanned"]),     Fore.GREEN)
+    show_info("Open Ports",      str(STATS["open_ports"]),      Fore.RED)
+    show_info("Emails Analyzed", str(STATS["emails_analyzed"]), Fore.GREEN)
+    show_info("Phones Analyzed", str(STATS["phones_analyzed"]), Fore.GREEN)
+    show_info("Domains Scanned", str(STATS["domains_scanned"]), Fore.GREEN)
+    show_info("API Calls Made",  str(STATS["api_calls"]),       Fore.MAGENTA)
+    show_info("Reports Saved",   str(STATS["reports_saved"]),   Fore.CYAN)
 
 def show_history():
-    section("SCAN HISTORY")
+    show_section("SCAN HISTORY")
     if not SCAN_HISTORY:
         print(Fore.LIGHTBLACK_EX + "  No scans yet")
         return
@@ -1068,59 +911,57 @@ def show_history():
     for h in SCAN_HISTORY:
         mod = h["module"].ljust(13)
         tgt = h["target"].ljust(24)
-        print(Fore.WHITE + f"  {h['time']}  {mod} {tgt} {h['result']}")
+        print(Fore.WHITE + "  " + h["time"] + "  " + mod + " " + tgt + " " + h["result"])
 
-# ================================================================
-# MAIN MENU
-# ================================================================
-
-def main_menu():
+def show_menu():
     print(Fore.CYAN + """
   ================================================================
               MAIN MENU - OSINT FRAMEWORK
   ================================================================""")
     items = [
-        ("[1]  Username Search",          "150+ platforms + APIs"),
-        ("[2]  IP Intelligence",           "3 APIs + Port Scan + Threats"),
-        ("[3]  Email OSINT",               "EmailRep + Disify + DNS"),
-        ("[4]  Phone Intelligence",        "60+ countries"),
-        ("[5]  Domain Intelligence",       "HackerTarget + crt.sh + RDAP"),
-        ("[6]  Person Search",             "People Finders + Dorks"),
-        ("[7]  Google Dork Generator",     "Advanced Dorks"),
-        ("[8]  Local Network Info",        "System + Network"),
-        ("[9]  Breach Hunter",             "Leak Databases"),
-        ("[10] Threat Intelligence",       "AlienVault + ThreatFox"),
-        ("[11] FULL OSINT SCAN",           "All Modules"),
-        ("[12] Statistics",                ""),
-        ("[13] Scan History",              ""),
-        ("[14] Open Reports",              ""),
-        ("[15] Exit",                      ""),
+        ("[1]  Username Search",      "100+ platforms + GitHub + Reddit + HN APIs"),
+        ("[2]  IP Intelligence",      "3 APIs + Port Scan + AlienVault"),
+        ("[3]  Email OSINT",          "EmailRep + Disify + DNS Analysis"),
+        ("[4]  Phone Intelligence",   "50+ countries + Lookup Tools"),
+        ("[5]  Domain Intelligence",  "HackerTarget + crt.sh + Subdomains"),
+        ("[6]  Person Search",        "People Finders + Social + Dorks"),
+        ("[7]  Google Dork Generator","Advanced Dorks + Other Engines"),
+        ("[8]  Local Network Info",   "System + Network + Privacy Tools"),
+        ("[9]  Breach Hunter",        "Leak Databases + Paste Sites"),
+        ("[10] Threat Intelligence",  "AlienVault OTX + ThreatFox"),
+        ("[11] FULL OSINT SCAN",      "All Modules Together"),
+        ("[12] Statistics",           "Session Summary"),
+        ("[13] Scan History",         "What You Searched"),
+        ("[14] Open Reports Folder",  "View Saved Reports"),
+        ("[15] Exit",                 ""),
     ]
     for item, desc in items:
-        color = Fore.YELLOW if "FULL" in item else Fore.RED if "Exit" in item else Fore.WHITE
-        if desc:
-            print(color + f"   {item}" + Fore.LIGHTBLACK_EX + f" - {desc}")
+        if "FULL" in item:
+            color = Fore.YELLOW
+        elif "Exit" in item:
+            color = Fore.RED
         else:
-            print(color + f"   {item}")
+            color = Fore.WHITE
+        if desc:
+            print(color + "   " + item + Fore.LIGHTBLACK_EX + " - " + desc)
+        else:
+            print(color + "   " + item)
 
     print(Fore.CYAN + "  ================================================================")
-    print(Fore.LIGHTBLACK_EX + f"  Made by PRATAM | v{VERSION}")
+    print(Fore.LIGHTBLACK_EX + "  Made by PRATAM | v" + VERSION)
     print()
     return input(Fore.YELLOW + "  Choice: " + Fore.WHITE).strip()
 
-# ================================================================
-# ENTRY POINT
-# ================================================================
-
 def main():
-    banner()
+    show_banner()
 
     print(Fore.RED    + "  ================================================================")
     print(Fore.RED    + "                       LEGAL DISCLAIMER")
     print(Fore.RED    + "  ================================================================")
     print(Fore.YELLOW + "  This tool is for EDUCATIONAL and LEGAL use ONLY.")
     print(Fore.YELLOW + "  PRATAM is NOT responsible for any misuse.")
-    print(Fore.RED    + "  ================================================================\n")
+    print(Fore.RED    + "  ================================================================")
+    print()
 
     agree = input(Fore.YELLOW + "  Type 'I AGREE' to continue: " + Fore.WHITE).strip()
 
@@ -1128,58 +969,48 @@ def main():
         print(Fore.RED + "  Exiting...")
         sys.exit(0)
 
-    banner()
-    log(f"OSINT Framework v{VERSION} initialized", "SUCCESS")
-    log(f"Made by {AUTHOR}", "SUCCESS")
+    show_banner()
+    show_log("OSINT Framework v" + VERSION + " initialized", "SUCCESS")
+    show_log("Made by " + AUTHOR, "SUCCESS")
 
     while True:
-        choice = main_menu()
+        choice = show_menu()
         STATS["total_scans"] += 1
 
         if choice == "1":
             u = input(Fore.YELLOW + "  Username: " + Fore.WHITE).strip()
             if u: search_username(u)
-
         elif choice == "2":
             ip = input(Fore.YELLOW + "  IP Address: " + Fore.WHITE).strip()
-            if ip: get_ip_intelligence(ip)
-
+            if ip: get_ip_info(ip)
         elif choice == "3":
             e = input(Fore.YELLOW + "  Email: " + Fore.WHITE).strip()
-            if e: get_email_intelligence(e)
-
+            if e: get_email_info(e)
         elif choice == "4":
             p = input(Fore.YELLOW + "  Phone (eg +1234567890): " + Fore.WHITE).strip()
-            if p: get_phone_intelligence(p)
-
+            if p: get_phone_info(p)
         elif choice == "5":
             d = input(Fore.YELLOW + "  Domain (eg google.com): " + Fore.WHITE).strip()
-            if d: get_domain_intelligence(d)
-
+            if d: get_domain_info(d)
         elif choice == "6":
             fn  = input(Fore.YELLOW + "  First Name: " + Fore.WHITE).strip()
             ln  = input(Fore.YELLOW + "  Last Name: " + Fore.WHITE).strip()
             loc = input(Fore.YELLOW + "  Location (optional): " + Fore.WHITE).strip()
             age = input(Fore.YELLOW + "  Age (optional): " + Fore.WHITE).strip()
             if fn and ln: search_person(fn, ln, loc, age)
-
         elif choice == "7":
             t = input(Fore.YELLOW + "  Target: " + Fore.WHITE).strip()
-            if t: get_google_dorks(t)
-
+            if t: get_dorks(t)
         elif choice == "8":
             get_network_info()
-
         elif choice == "9":
             t = input(Fore.YELLOW + "  Target (email/username): " + Fore.WHITE).strip()
             if t: search_breaches(t)
-
         elif choice == "10":
             t = input(Fore.YELLOW + "  Target IP/Domain: " + Fore.WHITE).strip()
-            if t: get_threat_intelligence(t)
-
+            if t: get_threat_intel(t)
         elif choice == "11":
-            section("FULL OSINT SCAN")
+            show_section("FULL OSINT SCAN")
             u   = input(Fore.CYAN + "  Username   : " + Fore.WHITE).strip()
             ip  = input(Fore.CYAN + "  IP Address : " + Fore.WHITE).strip()
             e   = input(Fore.CYAN + "  Email      : " + Fore.WHITE).strip()
@@ -1188,41 +1019,30 @@ def main():
             fn  = input(Fore.CYAN + "  First Name : " + Fore.WHITE).strip()
             ln  = input(Fore.CYAN + "  Last Name  : " + Fore.WHITE).strip()
             if u:       search_username(u)
-            if ip:      get_ip_intelligence(ip)
-            if e:       get_email_intelligence(e)
-            if p:       get_phone_intelligence(p)
-            if d:       get_domain_intelligence(d)
+            if ip:      get_ip_info(ip)
+            if e:       get_email_info(e)
+            if p:       get_phone_info(p)
+            if d:       get_domain_info(d)
             if fn and ln: search_person(fn, ln)
-            log("Full scan complete!", "SUCCESS")
-
+            show_log("Full scan complete!", "SUCCESS")
         elif choice == "12":
-            show_statistics()
-
+            show_stats()
         elif choice == "13":
             show_history()
-
         elif choice == "14":
             path = os.path.abspath("reports")
-            if os.name == "nt":
-                os.startfile(path)
-            else:
-                print(Fore.CYAN + f"  Reports folder: {path}")
-                subprocess.Popen(["xdg-open", path])
-
+            print(Fore.CYAN + "  Reports folder: " + path)
         elif choice == "15":
             print(Fore.GREEN + "\n  Thanks for using OSINT Tool by PRATAM!")
             print(Fore.YELLOW + "  Stay Legal. Stay Ethical.\n")
             sys.exit(0)
-
         else:
-            log("Invalid choice. Select 1-15.", "WARN")
+            show_log("Invalid choice. Select 1-15.", "WARN")
 
         print()
         input(Fore.LIGHTBLACK_EX + "  Press ENTER to continue...")
-        banner()
+        show_banner()
 
 if __name__ == "__main__":
     main()
-'@ | Out-File -FilePath "C:\Users\prata\OneDrive\Desktop\OSINT-Tool\osint.py" -Encoding UTF8 -Force
-
-Write-Host "[+] Python version created!" -ForegroundColor Green
+ENDOFFILE
