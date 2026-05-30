@@ -1,5 +1,5 @@
 # OSINT Tool - Ultimate Intelligence Framework
-Made by PRATAM | v5.0 PRO | 5000+ Lines
+Made by PRATAM | v5.0 PRO | 
 
 ================================================================
 
