@@ -1,0 +1,43 @@
+{
+    "tool": {
+        "name": "OSINT Tool",
+        "version": "1.0",
+        "author": "Your Name",
+        "timeout": 8,
+        "delay_ms": 200,
+        "save_results": true,
+        "output_folder": "results"
+    },
+    "platforms": {
+        "GitHub":       "https://github.com/",
+        "Twitter":      "https://twitter.com/",
+        "Instagram":    "https://instagram.com/",
+        "TikTok":       "https://tiktok.com/@",
+        "Reddit":       "https://reddit.com/user/",
+        "YouTube":      "https://youtube.com/@",
+        "LinkedIn":     "https://linkedin.com/in/",
+        "Twitch":       "https://twitch.tv/",
+        "Steam":        "https://steamcommunity.com/id/",
+        "GitLab":       "https://gitlab.com/",
+        "Pinterest":    "https://pinterest.com/",
+        "Spotify":      "https://open.spotify.com/user/",
+        "SoundCloud":   "https://soundcloud.com/",
+        "Medium":       "https://medium.com/@",
+        "DeviantArt":   "https://deviantart.com/",
+        "Replit":       "https://replit.com/@",
+        "CodePen":      "https://codepen.io/",
+        "Behance":      "https://behance.net/",
+        "Dribbble":     "https://dribbble.com/",
+        "HackerNews":   "https://news.ycombinator.com/user?id=",
+        "Keybase":      "https://keybase.io/",
+        "Pastebin":     "https://pastebin.com/u/",
+        "Vimeo":        "https://vimeo.com/",
+        "Flickr":       "https://flickr.com/people/",
+        "Tumblr":       "https://tumblr.com/",
+        "ProductHunt":  "https://producthunt.com/@",
+        "About.me":     "https://about.me/",
+        "Fiverr":       "https://fiverr.com/",
+        "9GAG":         "https://9gag.com/u/",
+        "Freelancer":   "https://freelancer.com/u/"
+    }
+}
