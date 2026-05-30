@@ -163,7 +163,6 @@ git clone https://github.com/vorlon-dev/OSINT-Tool.git
 
 cd OSINT-Tool
 
-Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 .\osint.ps1
 
 ### Method 2 - Download ZIP
