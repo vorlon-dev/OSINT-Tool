@@ -219,22 +219,22 @@ Type a number from 1 to 15 and press Enter.
 ### To See The Collected Data 
 cd /data/data/com.termux
 
-## 2 
+### 2 
 ls 
 
-##3
+###3
 cd files/home 
 
-##4
+###4
 ls 
 
-##5
+###5
 cd results
 
-##6
+###6
 ls 
 
-##7
+###7
 cat osint.log or file name which is  visible in that folder 
 
 ---
