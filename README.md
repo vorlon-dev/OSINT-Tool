@@ -216,25 +216,20 @@ Press Enter.
 ### Step 11 - Use the Tool
 Type a number from 1 to 15 and press Enter.
 
-### To See The Collected Data 
+### Step- 12 To See The Collected Data 
+
 cd /data/data/com.termux
 
-### 2 
 ls 
 
-###3
 cd files/home 
 
-###4
 ls 
 
-###5
 cd results
 
-###6
 ls 
 
-###7
 cat osint.log or file name which is  visible in that folder 
 
 ---
